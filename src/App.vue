@@ -11,10 +11,6 @@
         <div class="main-content">
             <!-- 左侧菜单 -->
             <nav class="sidebar">
-                <router-link to="/text-processing" class="menu-item">
-                    <i class="icon text-icon"></i>
-                    文字处理
-                </router-link>
                 <router-link to="/image-convert" class="menu-item">
                     <i class="icon image-icon"></i>
                     图片格式转换

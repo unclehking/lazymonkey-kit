@@ -2,11 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
   {
-    path: '/text-processing',
-    name: 'TextProcessing',
-    component: () => import('../views/TextProcessing.vue')
-  },
-  {
     path: '/image-convert',
     name: 'ImageConvert',
     component: () => import('../views/ImageConvert.vue')

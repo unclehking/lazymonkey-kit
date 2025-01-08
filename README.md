@@ -54,3 +54,4 @@ npm run build
 - 给App.vue中的菜单点后添加active状态，设置背景色为#f5f5f5
 - 把dist目录加入到gitignore
 - 把Composer历史prompt写入到README.md中
+- 删除App.vue中菜单项：文字处理，并且删除相关代码
