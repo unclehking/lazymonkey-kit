@@ -3,9 +3,6 @@
         <!-- 顶部状态栏 -->
         <header class="header">
             <div class="logo">懒猴工具箱</div>
-            <div class="right-section">
-                <a href="#" class="pdf-select">选择PDF</a>
-            </div>
         </header>
 
         <div class="main-content">
@@ -86,10 +83,5 @@
     flex: 1;
     padding: 20px;
     background-color: #f5f5f5;
-}
-
-.pdf-select {
-    color: #333;
-    text-decoration: none;
 }
 </style>
