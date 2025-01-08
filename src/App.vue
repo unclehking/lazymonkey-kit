@@ -19,6 +19,10 @@
                     <i class="icon base64-icon"></i>
                     图片转Base64
                 </router-link>
+                <router-link to="/ascii" class="menu-item">
+                    <i class="icon code-icon"></i>
+                    ASCII编码/解码
+                </router-link>
                 <router-link to="/faq" class="menu-item">
                     <i class="icon faq-icon"></i>
                     常见问题

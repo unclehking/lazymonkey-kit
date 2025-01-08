@@ -12,6 +12,11 @@ const routes = [
     component: () => import('../views/Base64Convert.vue')
   },
   {
+    path: '/ascii',
+    name: 'ASCII',
+    component: () => import('../views/ASCII.vue')
+  },
+  {
     path: '/faq',
     name: 'FAQ',
     component: () => import('../views/FAQ.vue')

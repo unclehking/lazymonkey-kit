@@ -55,3 +55,4 @@ npm run build
 - 把dist目录加入到gitignore
 - 把Composer历史prompt写入到README.md中
 - 删除App.vue中菜单项：文字处理，并且删除相关代码
+- 添加一个菜单：ASCII编码/解码，并且在views/ASCII.vue文件中实现ASCII编码、解码功能
