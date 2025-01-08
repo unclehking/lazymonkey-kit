@@ -2,7 +2,22 @@
     <div class="app-container">
         <!-- 顶部状态栏 -->
         <header class="header">
-            <div class="logo">懒猴工具箱</div>
+            <div class="logo">
+                <svg 
+                    class="logo-icon" 
+                    viewBox="0 0 24 24" 
+                    width="24" 
+                    height="24" 
+                    fill="#0065a0"
+                >
+                    <path d="M20.5,11H19V7c0-1.1-0.9-2-2-2h-4V3.5C13,2.12,11.88,1,10.5,1S8,2.12,8,3.5V5H4
+                        C2.9,5,2,5.9,2,7v4H3.5c1.38,0,2.5,1.12,2.5,2.5S4.88,16,3.5,16H2v4c0,1.1,0.9,2,2,2h4v-1.5
+                        c0-1.38,1.12-2.5,2.5-2.5s2.5,1.12,2.5,2.5V22h4c1.1,0,2-0.9,2-2v-4h1.5c1.38,0,2.5-1.12,2.5-2.5
+                        S21.88,11,20.5,11z M16,17H8c-0.55,0-1-0.45-1-1V8c0-0.55,0.45-1,1-1h8c0.55,0,1,0.45,1,1v8
+                        C17,16.55,16.55,17,16,17z"/>
+                </svg>
+                懒猴工具箱
+            </div>
         </header>
 
         <div class="main-content">
@@ -83,5 +98,17 @@
     flex: 1;
     padding: 20px;
     background-color: #f5f5f5;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+.logo-icon {
+    display: inline-block;
+    vertical-align: middle;
 }
 </style>

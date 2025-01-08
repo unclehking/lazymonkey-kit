@@ -57,3 +57,4 @@ npm run build
 - 删除App.vue中菜单项：文字处理，并且删除相关代码
 - 添加一个菜单：ASCII编码/解码，并且在views/ASCII.vue文件中实现ASCII编码、解码功能
 - 删除App.vue文件中的“选择PDF”
+- 生成一个与“工具箱”相关的svg图标logo，填充颜色为#0065a0，并插入到App.vue文件中，位于文本“懒猴工具箱”之前
