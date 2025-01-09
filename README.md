@@ -59,3 +59,4 @@ npm run build
 - 删除App.vue文件中的“选择PDF”
 - 生成一个与“工具箱”相关的svg图标logo，填充颜色为#0065a0，并插入到App.vue文件中，位于文本“懒猴工具箱”之前
 - 添加一个菜单：base64转图片，并且在views/base64ToImg.vue文件中实现base64转图片功能
+- 添加默认路由，访问时显示views/index.vue，views/index.vue页面内容为“欢迎使用懒猴工具站！（换行显示）本工具站完全使用AI生成，未使用人工编写一行代码。”，上下左右居中显示。
