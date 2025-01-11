@@ -35,13 +35,17 @@
                     <i class="icon image-icon"></i>
                     Base64转图片
                 </router-link>
-                <router-link to="/ascii" class="menu-item">
-                    <i class="icon code-icon"></i>
-                    ASCII编码/解码
+                <router-link to="/image-cut" class="menu-item">
+                    <i class="fas fa-crop-alt"></i>
+                    图片截取
                 </router-link>
                 <router-link to="/image-compress" class="menu-item">
                     <i class="fas fa-compress"></i>
                     图片压缩
+                </router-link>
+                <router-link to="/ascii" class="menu-item">
+                    <i class="icon code-icon"></i>
+                    ASCII编码/解码
                 </router-link>
                 <router-link to="/faq" class="menu-item">
                     <i class="icon faq-icon"></i>

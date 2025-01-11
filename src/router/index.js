@@ -35,6 +35,11 @@ const routes = [
     path: '/image-compress',
     name: 'ImageCompress',
     component: () => import('../views/imageCompress.vue')
+  },
+  {
+    path: '/image-cut',
+    name: 'ImageCut',
+    component: () => import('../views/imageCut.vue')
   }
 ]
 
