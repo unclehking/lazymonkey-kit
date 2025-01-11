@@ -69,3 +69,5 @@ npm run build
 - 添加meta标签，name为description， 内容为：懒猴工具站-免费便捷在线工具站，提供图片压缩,图片格式转换,图片截取,base64转图片等在线工具
 - 修改.sidebar的width为150px
 - 点击左上角logo，跳转到views/index.vue
+- 页面不允许滚动，main标签允许y轴滚动
+- 当main标签内容较多时，内容还是不可滚动，请修复此bug

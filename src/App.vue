@@ -66,6 +66,7 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .header {
@@ -81,6 +82,7 @@
 .main-content {
     flex: 1;
     display: flex;
+    overflow: hidden;
 }
 
 .sidebar {
@@ -110,6 +112,8 @@
     flex: 1;
     padding: 20px;
     background-color: #f5f5f5;
+    overflow-y: auto;
+    height: 100%;
 }
 
 .logo {
