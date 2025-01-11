@@ -39,6 +39,10 @@
                     <i class="icon code-icon"></i>
                     ASCII编码/解码
                 </router-link>
+                <router-link to="/image-compress" class="menu-item">
+                    <i class="fas fa-compress"></i>
+                    图片压缩
+                </router-link>
                 <router-link to="/faq" class="menu-item">
                     <i class="icon faq-icon"></i>
                     常见问题

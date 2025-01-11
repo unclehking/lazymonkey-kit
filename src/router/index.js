@@ -30,6 +30,11 @@ const routes = [
     path: '/faq',
     name: 'FAQ',
     component: () => import('../views/FAQ.vue')
+  },
+  {
+    path: '/image-compress',
+    name: 'ImageCompress',
+    component: () => import('../views/imageCompress.vue')
   }
 ]
 
