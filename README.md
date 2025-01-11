@@ -67,3 +67,4 @@ npm run build
 - 修改title内容为：懒猴工具站-免费便捷在线工具站
 - 添加meta标签，name为keywords， 懒猴工具,在线工具,图片压缩,图片格式转换,图片截取,base64转图片,图片base64
 - 添加meta标签，name为description， 内容为：懒猴工具站-免费便捷在线工具站，提供图片压缩,图片格式转换,图片截取,base64转图片等在线工具
+- 修改.sidebar的width为150px
