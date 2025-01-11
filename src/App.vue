@@ -2,7 +2,7 @@
     <div class="app-container">
         <!-- 顶部状态栏 -->
         <header class="header">
-            <div class="logo">
+            <router-link to="/" class="logo">
                 <svg 
                     class="logo-icon" 
                     viewBox="0 0 24 24" 
@@ -17,7 +17,7 @@
                         C17,16.55,16.55,17,16,17z"/>
                 </svg>
                 懒猴工具箱
-            </div>
+            </router-link>
         </header>
 
         <div class="main-content">
@@ -117,6 +117,12 @@
     align-items: center;
     gap: 8px;
     font-weight: 500;
+    text-decoration: none;
+    color: inherit;
+}
+
+.logo:hover {
+    opacity: 0.8;
 }
 
 .logo-icon {
