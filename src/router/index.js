@@ -40,6 +40,11 @@ const routes = [
     path: '/image-cut',
     name: 'ImageCut',
     component: () => import('../views/imageCut.vue')
+  },
+  {
+    path: '/generate-qrcode',
+    name: 'GenerateQrcode',
+    component: () => import('../views/GenerateQrcode.vue')
   }
 ]
 
