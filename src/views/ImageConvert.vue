@@ -15,6 +15,7 @@
             <div class="convert-options">
                 <select v-model="targetFormat">
                     <option value="jpeg">JPEG</option>
+                    <option value="jpg">JPG</option>
                     <option value="png">PNG</option>
                     <option value="webp">WEBP</option>
                     <option value="gif">GIF</option>
@@ -77,6 +78,9 @@ export default {
                 // 根据目标格式获取转换后的图片数据
                 let mimeType = 'image/jpeg'
                 switch(this.targetFormat) {
+                    case 'jpg':
+                        mimeType = 'image/jpeg'
+                        break
                     case 'png':
                         mimeType = 'image/png'
                         break
