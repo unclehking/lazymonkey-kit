@@ -45,6 +45,10 @@ const routes = [
     path: '/de-qrcode',
     name: 'DeQrcode',
     component: () => import('../views/DeQrcode.vue')
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
   }
 ]
 

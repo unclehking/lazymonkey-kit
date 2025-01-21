@@ -73,3 +73,4 @@ npm run build
 - 添加repository为https://github.com/unclehking/lazymonkey-kit
 - 把repository地址写到首页下侧，左右居中
 - 封装一个Toast组件，并替换alert
+- 当访问不存在的路由时，默认展示首页
