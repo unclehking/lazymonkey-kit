@@ -54,6 +54,10 @@
                     <i class="icon qrcode-icon"></i>
                     二维码生成
                 </router-link>
+                <router-link to="/de-qrcode" class="menu-item">
+                    <i class="icon qrcode-icon"></i>
+                    二维码解码
+                </router-link>
                 <router-link to="/faq" class="menu-item">
                     <i class="icon faq-icon"></i>
                     常见问题

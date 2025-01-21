@@ -11,6 +11,9 @@ dependencies:
   pinia:
     specifier: ^2.1.6
     version: 2.3.0(vue@3.5.13)
+  qr-scanner:
+    specifier: ^1.4.2
+    version: 1.4.2
   qrcode:
     specifier: ^1.5.3
     version: 1.5.4
@@ -253,6 +256,10 @@ packages:
 
   /@jridgewell/sourcemap-codec@1.5.0:
     resolution: {integrity: sha512-gv3ZRaISU3fjPAgNsriBRqGWQL6quFx04YMPW/zD8XMLsU32mhCCbfbO6KZFLjvYpCZ8zyDEgqsgf+PwPaM7GQ==, tarball: https://registry.npmmirror.com/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.5.0.tgz}
+
+  /@types/offscreencanvas@2019.7.3:
+    resolution: {integrity: sha512-ieXiYmgSRXUDeOntE1InxjWyvEelZGP63M+cGuquuRLuIKKT1osnkXjxev9B7d1nXSug5vpunx+gNlbVxMlC9A==, tarball: https://registry.npmmirror.com/@types/offscreencanvas/-/offscreencanvas-2019.7.3.tgz}
+    dev: false
 
   /@vitejs/plugin-vue@4.6.2(vite@4.5.5)(vue@3.5.13):
     resolution: {integrity: sha512-kqf7SGFoG+80aZG6Pf+gsZIVvGSCKE98JbiWqcCV9cThtg91Jav0yvYFC9Zb+jKetNGF6ZKeoaxgZfND21fWKw==, tarball: https://registry.npmmirror.com/@vitejs/plugin-vue/-/plugin-vue-4.6.2.tgz}
@@ -525,6 +532,12 @@ packages:
       nanoid: 3.3.8
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  /qr-scanner@1.4.2:
+    resolution: {integrity: sha512-kV1yQUe2FENvn59tMZW6mOVfpq9mGxGf8l6+EGaXUOd4RBOLg7tRC83OrirM5AtDvZRpdjdlXURsHreAOSPOUw==, tarball: https://registry.npmmirror.com/qr-scanner/-/qr-scanner-1.4.2.tgz}
+    dependencies:
+      '@types/offscreencanvas': 2019.7.3
+    dev: false
 
   /qrcode@1.5.4:
     resolution: {integrity: sha512-1ca71Zgiu6ORjHqFBDpnSMTR2ReToX4l1Au1VFLyVeBTFavzQnv5JxMFr3ukHVKpSrSA2MCk0lNJSykjUfz7Zg==, tarball: https://registry.npmmirror.com/qrcode/-/qrcode-1.5.4.tgz}

@@ -12,7 +12,8 @@
     "vue-router": "^4.2.4",
     "pinia": "^2.1.6",
     "cropperjs": "^1.6.1",
-    "qrcode": "^1.5.3"
+    "qrcode": "^1.5.3",
+    "qr-scanner": "^1.4.2"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.2.3",

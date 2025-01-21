@@ -40,6 +40,11 @@ const routes = [
     path: '/generate-qrcode',
     name: 'GenerateQrcode',
     component: () => import('../views/GenerateQrcode.vue')
+  },
+  {
+    path: '/de-qrcode',
+    name: 'DeQrcode',
+    component: () => import('../views/DeQrcode.vue')
   }
 ]
 
