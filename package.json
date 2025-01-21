@@ -2,6 +2,10 @@
   "name": "vue3-tools-app",
   "private": true,
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/unclehking/lazymonkey-kit"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

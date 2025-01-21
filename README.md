@@ -75,3 +75,4 @@ npm run build
 - 添加一个菜单：二维码生成，并且在views/generateQrcode.vue文件中实现字符串生成二维码功能
 - 删除菜单： ASCII编码/解码， 并删除相关逻辑代码
 - 添加一个菜单：二维码解码，并且在views/deQrcode.vue文件中实现二维码图片解码功能
+- 添加repository为https://github.com/unclehking/lazymonkey-kit
