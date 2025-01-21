@@ -129,6 +129,9 @@ export default {
     padding: 12px 20px;
     color: #fff;
     text-decoration: none;
+    transition: all 0.3s ease;
+    position: relative;
+    border-radius: 0;
 }
 
 .menu-item:hover {
@@ -138,6 +141,9 @@ export default {
 .menu-item.router-link-active {
     background-color: #f5f5f5;
     color: #2c3e50;
+    transform: translateX(10px);
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
 }
 
 .content {
