@@ -87,7 +87,7 @@ export default {
                 await QRCode.toCanvas(canvas, this.inputText, options)
                 this.qrcodeGenerated = true
             } catch (err) {
-                alert('生成二维码失败：' + err.message)
+                this.$toast.error('生成二维码失败：' + err.message)
                 this.qrcodeGenerated = false
             }
         },

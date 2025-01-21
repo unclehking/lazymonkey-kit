@@ -67,7 +67,7 @@ export default {
                 this.imageUrl = this.base64Input
                 this.updateImageInfo()
             } catch (err) {
-                alert('无效的Base64编码：' + err.message)
+                this.$toast.error('无效的Base64编码：' + err.message)
                 this.imageUrl = ''
                 this.imageInfo = null
             }
@@ -99,7 +99,7 @@ export default {
                 this.base64Input = text
                 this.validateAndPreview()
             } catch (err) {
-                alert('从剪贴板读取失败')
+                this.$toast.error('从剪贴板读取失败')
             }
         },
         clearInput() {

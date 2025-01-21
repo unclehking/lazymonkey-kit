@@ -72,3 +72,4 @@ npm run build
 - 添加一个菜单：二维码解码，并且在views/deQrcode.vue文件中实现二维码图片解码功能
 - 添加repository为https://github.com/unclehking/lazymonkey-kit
 - 把repository地址写到首页下侧，左右居中
+- 封装一个Toast组件，并替换alert

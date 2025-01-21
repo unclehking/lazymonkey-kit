@@ -71,15 +71,15 @@ export default {
                 }
                 reader.readAsDataURL(file)
             } else {
-                alert('请选择有效的图片文件')
+                this.$toast.error('请选择有效的图片文件')
             }
         },
         async copyToClipboard() {
             try {
                 await navigator.clipboard.writeText(this.base64Result)
-                alert('Base64编码已复制到剪贴板')
+                this.$toast.success('Base64编码已复制到剪贴板')
             } catch (err) {
-                alert('复制失败，请手动复制')
+                this.$toast.error('复制失败，请手动复制')
             }
         },
         downloadAsText() {

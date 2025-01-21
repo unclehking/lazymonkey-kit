@@ -74,7 +74,7 @@ export default {
         },
         async processFile(file) {
             if (!file || !file.type.startsWith('image/')) {
-                alert('请选择有效的图片文件')
+                this.$toast.error('请选择有效的图片文件')
                 return
             }
 
@@ -83,16 +83,16 @@ export default {
                 const result = await QrScanner.scanImage(file)
                 this.decodedText = result
             } catch (error) {
-                alert('无法识别二维码，请确保图片清晰且包含有效的二维码')
+                this.$toast.error('无法识别二维码，请确保图片清晰且包含有效的二维码')
                 this.decodedText = ''
             }
         },
         async copyToClipboard() {
             try {
                 await navigator.clipboard.writeText(this.decodedText)
-                alert('已复制到剪贴板')
+                this.$toast.success('已复制到剪贴板')
             } catch (err) {
-                alert('复制失败，请手动复制')
+                this.$toast.error('复制失败，请手动复制')
             }
         },
         clearAll() {

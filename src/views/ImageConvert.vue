@@ -52,7 +52,7 @@ export default {
                 this.selectedImage = file
                 this.imagePreview = URL.createObjectURL(file)
             } else {
-                alert('请选择有效的图片文件')
+                this.$toast.error('请选择有效的图片文件')
             }
         },
         convertImage() {
