@@ -17,11 +17,6 @@ const routes = [
     component: () => import('../views/Base64Convert.vue')
   },
   {
-    path: '/ascii',
-    name: 'ASCII',
-    component: () => import('../views/ASCII.vue')
-  },
-  {
     path: '/base64-to-img',
     name: 'Base64ToImg',
     component: () => import('../views/Base64ToImg.vue')

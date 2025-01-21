@@ -50,10 +50,6 @@
                     <i class="fas fa-compress"></i>
                     图片压缩
                 </router-link>
-                <router-link to="/ascii" class="menu-item">
-                    <i class="icon code-icon"></i>
-                    ASCII编码/解码
-                </router-link>
                 <router-link to="/generate-qrcode" class="menu-item">
                     <i class="icon qrcode-icon"></i>
                     二维码生成
