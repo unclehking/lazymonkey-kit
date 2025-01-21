@@ -31,11 +31,7 @@ const routes = [
     name: 'ImageCompress',
     component: () => import('../views/imageCompress.vue')
   },
-  {
-    path: '/image-cut',
-    name: 'ImageCut',
-    component: () => import('../views/imageCut.vue')
-  },
+
   {
     path: '/generate-qrcode',
     name: 'GenerateQrcode',
@@ -57,4 +53,4 @@ const router = createRouter({
   routes
 })
 
-export default router 
+export default router

@@ -42,10 +42,7 @@
                     <i class="icon image-icon"></i>
                     Base64转图片
                 </router-link>
-                <router-link to="/image-cut" class="menu-item">
-                    <i class="fas fa-crop-alt"></i>
-                    图片截取
-                </router-link>
+
                 <router-link to="/image-compress" class="menu-item">
                     <i class="fas fa-compress"></i>
                     图片压缩
