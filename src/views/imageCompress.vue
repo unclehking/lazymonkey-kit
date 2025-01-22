@@ -10,7 +10,7 @@
              accept="image/*" 
              style="display: none">
       <div class="upload-hint">
-        <i class="fas fa-cloud-upload-alt"></i>
+        <i class="upload-icon">📁</i>
         <p>点击或拖拽图片到此处</p>
       </div>
     </div>
@@ -136,9 +136,10 @@ export default {
   color: #666;
 }
 
-.upload-hint i {
+.upload-icon {
   font-size: 48px;
   margin-bottom: 10px;
+  display: block;
 }
 
 .compress-options {
@@ -188,4 +189,4 @@ h3 {
   margin-bottom: 10px;
   color: #333;
 }
-</style> 
+</style>
