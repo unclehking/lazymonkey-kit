@@ -35,10 +35,6 @@ export default {
           answer: '目前支持JPEG、PNG、WEBP、GIF等常见图片格式之间的互相转换。'
         },
         {
-          question: '文字处理功能有哪些？',
-          answer: '文字处理功能包括文本格式化、大小写转换、简繁体转换等多种实用工具。'
-        },
-        {
           question: '如何导出处理后的文件？',
           answer: '处理完成后，系统会自动提供下载链接，点击即可下载处理后的文件。'
         },
@@ -123,4 +119,4 @@ export default {
     padding: 12px 15px;
   }
 }
-</style> 
+</style>
