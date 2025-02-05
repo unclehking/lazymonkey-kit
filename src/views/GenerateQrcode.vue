@@ -43,7 +43,9 @@
                     <button @click="downloadQRCode" class="action-btn">下载二维码</button>
                     <select v-model="downloadFormat" class="format-select">
                         <option value="png">PNG</option>
-                        <option value="jpeg">JPEG</option>
+                        <option value="jpeg">JPG</option>
+                        <option value="webp">WEBP</option>
+                        <option value="gif">GIF</option>
                     </select>
                 </div>
             </div>
@@ -190,4 +192,4 @@ export default {
         grid-template-columns: 1fr;
     }
 }
-</style> 
+</style>
