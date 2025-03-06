@@ -55,6 +55,10 @@
                     <i class="icon qrcode-icon"></i>
                     二维码解码
                 </router-link>
+                <router-link to="/color-img" class="menu-item">
+                    <i class="icon image-icon"></i>
+                    纯色图片生成
+                </router-link>
                 <router-link to="/faq" class="menu-item">
                     <i class="icon faq-icon"></i>
                     常见问题

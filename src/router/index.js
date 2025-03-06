@@ -43,6 +43,11 @@ const routes = [
     component: () => import('../views/DeQrcode.vue')
   },
   {
+    path: '/color-img',
+    name: 'ColorImg',
+    component: () => import('../views/colorImg.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/'
   }
