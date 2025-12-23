@@ -12,6 +12,7 @@
                     @input="handleInput"
                 ></textarea>
                 <div class="button-group">
+                    <button @click="addPngPrefix" class="action-btn secondary">添加png图片前缀</button>
                     <button @click="pasteFromClipboard" class="action-btn">从剪贴板粘贴</button>
                     <button @click="clearInput" class="action-btn clear">清空</button>
                 </div>
@@ -107,6 +108,13 @@ export default {
             } catch (err) {
                 this.$toast.error('从剪贴板读取失败')
             }
+        },
+        addPngPrefix() {
+            const prefix = 'data:image/png;base64,'
+            if (!this.base64Input.startsWith(prefix)) {
+                this.base64Input = prefix + this.base64Input.trim()
+            }
+            this.validateAndPreview()
         },
         clearInput() {
             this.base64Input = ''
@@ -207,6 +215,14 @@ export default {
 
 .action-btn.clear:hover {
     background-color: #7f8c8d;
+}
+
+.action-btn.secondary {
+    background-color: #5a6b7a;
+}
+
+.action-btn.secondary:hover {
+    background-color: #4d5b69;
 }
 
 .image-info {
