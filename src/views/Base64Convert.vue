@@ -47,6 +47,12 @@ export default {
             base64Result: ''
         }
     },
+    mounted() {
+        document.addEventListener('paste', this.handlePaste)
+    },
+    beforeUnmount() {
+        document.removeEventListener('paste', this.handlePaste)
+    },
     methods: {
         triggerFileInput() {
             this.$refs.fileInput.click()
@@ -92,6 +98,31 @@ export default {
             link.click()
             document.body.removeChild(link)
             URL.revokeObjectURL(url)
+        },
+        handlePaste(event) {
+            const items = event.clipboardData.items
+            for (let item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    const file = item.getAsFile()
+                    this.processImage(file)
+                    break
+                }
+            }
+        },
+        processImage(file) {
+            if (file && file.type.startsWith('image/')) {
+                this.selectedImage = file
+                this.imagePreview = URL.createObjectURL(file)
+                
+                // 转换为Base64
+                const reader = new FileReader()
+                reader.onload = (e) => {
+                    this.base64Result = e.target.result
+                }
+                reader.readAsDataURL(file)
+            } else {
+                this.$toast.error('请选择有效的图片文件')
+            }
         }
     }
 }

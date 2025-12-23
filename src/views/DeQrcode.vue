@@ -60,6 +60,12 @@ export default {
             decodedText: ''
         }
     },
+    mounted() {
+        document.addEventListener('paste', this.handlePaste)
+    },
+    beforeUnmount() {
+        document.removeEventListener('paste', this.handlePaste)
+    },
     methods: {
         triggerFileInput() {
             this.$refs.fileInput.click()
@@ -106,6 +112,31 @@ export default {
                 return true
             } catch {
                 return false
+            }
+        },
+        handlePaste(event) {
+            const items = event.clipboardData.items
+            for (let item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    const file = item.getAsFile()
+                    this.processImage(file)
+                    break
+                }
+            }
+        },
+        async processImage(file) {
+            if (!file || !file.type.startsWith('image/')) {
+                this.$toast.error('请选择有效的图片文件')
+                return
+            }
+
+            this.imageUrl = URL.createObjectURL(file)
+            try {
+                const result = await QrScanner.scanImage(file)
+                this.decodedText = result
+            } catch (error) {
+                this.$toast.error('无法识别二维码，请确保图片清晰且包含有效的二维码')
+                this.decodedText = ''
             }
         }
     }

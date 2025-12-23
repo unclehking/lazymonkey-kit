@@ -36,6 +36,14 @@ export default {
             targetFormat: 'jpeg'
         }
     },
+    mounted() {
+        // 添加粘贴事件监听
+        document.addEventListener('paste', this.handlePaste)
+    },
+    beforeUnmount() {
+        // 移除粘贴事件监听
+        document.removeEventListener('paste', this.handlePaste)
+    },
     methods: {
         triggerFileInput() {
             this.$refs.fileInput.click()
@@ -104,6 +112,16 @@ export default {
                 document.body.appendChild(link)
                 link.click()
                 document.body.removeChild(link)
+            }
+        },
+        handlePaste(event) {
+            const items = event.clipboardData.items
+            for (let item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    const file = item.getAsFile()
+                    this.processImage(file)
+                    break
+                }
             }
         }
     }

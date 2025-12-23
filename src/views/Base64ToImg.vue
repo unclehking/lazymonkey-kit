@@ -47,6 +47,12 @@ export default {
             imageInfo: null
         }
     },
+    mounted() {
+        document.addEventListener('paste', this.handlePaste)
+    },
+    beforeUnmount() {
+        document.removeEventListener('paste', this.handlePaste)
+    },
     methods: {
         handleInput() {
             this.validateAndPreview()
@@ -116,6 +122,20 @@ export default {
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)
+        },
+        handlePaste(event) {
+            const items = event.clipboardData.items
+            for (let item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    const file = item.getAsFile()
+                    const reader = new FileReader()
+                    reader.onload = (e) => {
+                        this.base64Input = e.target.result
+                    }
+                    reader.readAsDataURL(file)
+                    break
+                }
+            }
         }
     }
 }

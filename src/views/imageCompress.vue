@@ -53,6 +53,12 @@ export default {
       compressedSize: 0
     }
   },
+  mounted() {
+    document.addEventListener('paste', this.handlePaste)
+  },
+  beforeUnmount() {
+    document.removeEventListener('paste', this.handlePaste)
+  },
   methods: {
     triggerFileInput() {
       this.$refs.fileInput.click()
@@ -109,6 +115,16 @@ export default {
       const sizes = ['Bytes', 'KB', 'MB', 'GB']
       const i = Math.floor(Math.log(bytes) / Math.log(k))
       return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    },
+    handlePaste(event) {
+      const items = event.clipboardData.items
+      for (let item of items) {
+        if (item.type.indexOf('image') !== -1) {
+          const file = item.getAsFile()
+          this.processImage(file)
+          break
+        }
+      }
     }
   }
 }
