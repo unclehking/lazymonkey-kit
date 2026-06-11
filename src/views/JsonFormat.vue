@@ -80,11 +80,16 @@ export default {
     name: 'JsonFormat',
     data() {
         return {
-            inputText: '',
+            inputText: localStorage.getItem('json_format_input') || '',
             outputText: '',
             parsedData: null,
             indent: '2',
             collapsedPaths: {}
+        }
+    },
+    mounted() {
+        if (this.inputText.trim()) {
+            this.formatJson(true)
         }
     },
     computed: {
@@ -130,16 +135,17 @@ export default {
                 this.collapsedPaths[path] = true
             }
         },
-        formatJson() {
+        formatJson(silent) {
             if (!this.inputText.trim()) {
-                this.$toast.error('请输入JSON字符串')
+                if (!silent) this.$toast.error('请输入JSON字符串')
                 return
             }
             try {
                 this.parsedData = JSON.parse(this.inputText.trim())
                 const space = this.indent === 'tab' ? '\t' : Number(this.indent)
                 this.outputText = JSON.stringify(this.parsedData, null, space)
-                this.$toast.success('格式化成功')
+                localStorage.setItem('json_format_input', this.inputText)
+                if (!silent) this.$toast.success('格式化成功')
             } catch (e) {
                 this.$toast.error('JSON格式错误：' + e.message)
             }
@@ -174,6 +180,7 @@ export default {
             this.outputText = ''
             this.parsedData = null
             this.collapsedPaths = {}
+            localStorage.removeItem('json_format_input')
         },
         expandAll() {
             this.collapsedPaths = {}
@@ -197,12 +204,14 @@ export default {
 .json-format {
     padding: 20px;
     height: 100%;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .format-container {
-    margin-top: 20px;
+    margin-top: 10px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
@@ -235,10 +244,11 @@ export default {
     font-size: 13px;
     line-height: 1.5;
     box-sizing: border-box;
+    height: calc(100vh - 250px);
 }
 
 .button-group {
-    margin-top: 10px;
+    margin-top: 6px;
     display: flex;
     gap: 10px;
 }
@@ -272,6 +282,7 @@ export default {
     flex: 1;
     min-height: 0;
     background: #fff;
+    height: calc(100vh - 240px);
 }
 
 .tree-container.empty {
@@ -336,6 +347,7 @@ export default {
     cursor: pointer;
     flex-shrink: 0;
     transition: transform 0.15s;
+    text-align: center;
 }
 
 .toggle-icon.rotated {
