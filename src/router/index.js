@@ -53,6 +53,11 @@ const routes = [
     component: () => import('../views/JsonFormat.vue')
   },
   {
+    path: '/url-encode',
+    name: 'UrlEncode',
+    component: () => import('../views/UrlEncode.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/'
   }

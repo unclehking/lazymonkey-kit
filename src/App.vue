@@ -63,6 +63,10 @@
                     <i class="icon base64-icon"></i>
                     JSON格式化
                 </router-link>
+                <router-link to="/url-encode" class="menu-item">
+                    <i class="icon base64-icon"></i>
+                    URL编码/解码
+                </router-link>
                 <router-link to="/faq" class="menu-item">
                     <i class="icon faq-icon"></i>
                     常见问题
