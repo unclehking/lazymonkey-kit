@@ -48,6 +48,11 @@ const routes = [
     component: () => import('../views/colorImg.vue')
   },
   {
+    path: '/json-format',
+    name: 'JsonFormat',
+    component: () => import('../views/JsonFormat.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/'
   }

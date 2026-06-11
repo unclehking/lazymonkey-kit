@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(grep -r '\\\\$toast' /Users/hking/workspace/lazymonkey-kit/src/views/)"
+    ]
+  }
+}

@@ -59,6 +59,10 @@
                     <i class="icon image-icon"></i>
                     纯色图片生成
                 </router-link>
+                <router-link to="/json-format" class="menu-item">
+                    <i class="icon base64-icon"></i>
+                    JSON格式化
+                </router-link>
                 <router-link to="/faq" class="menu-item">
                     <i class="icon faq-icon"></i>
                     常见问题
