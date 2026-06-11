@@ -50,6 +50,11 @@ export default {
     },
     mounted() {
         document.addEventListener('paste', this.handlePaste)
+        const cached = localStorage.getItem('base64_to_img_input')
+        if (cached) {
+            this.base64Input = cached
+            this.validateAndPreview()
+        }
     },
     beforeUnmount() {
         document.removeEventListener('paste', this.handlePaste)
@@ -73,6 +78,7 @@ export default {
 
                 this.imageUrl = this.base64Input
                 this.updateImageInfo()
+                localStorage.setItem('base64_to_img_input', this.base64Input)
             } catch (err) {
                 this.$toast.error('无效的Base64编码：' + err.message)
                 this.imageUrl = ''
@@ -120,6 +126,7 @@ export default {
             this.base64Input = ''
             this.imageUrl = ''
             this.imageInfo = null
+            localStorage.removeItem('base64_to_img_input')
         },
         downloadImage() {
             if (!this.imageUrl) return
