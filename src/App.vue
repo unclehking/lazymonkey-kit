@@ -67,6 +67,10 @@
                     <i class="icon base64-icon"></i>
                     URL编码/解码
                 </router-link>
+                <router-link to="/password-generator" class="menu-item">
+                    <i class="fas fa-key"></i>
+                    密码生成器
+                </router-link>
                 <router-link to="/faq" class="menu-item">
                     <i class="icon faq-icon"></i>
                     常见问题

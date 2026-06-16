@@ -58,6 +58,11 @@ const routes = [
     component: () => import('../views/UrlEncode.vue')
   },
   {
+    path: '/password-generator',
+    name: 'PasswordGenerator',
+    component: () => import('../views/PasswordGenerator.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/'
   }
