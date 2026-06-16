@@ -71,6 +71,10 @@
                     <i class="fas fa-key"></i>
                     密码生成器
                 </router-link>
+                <router-link to="/color-picker" class="menu-item">
+                    <i class="fas fa-eye-dropper"></i>
+                    屏幕取色器
+                </router-link>
                 <router-link to="/faq" class="menu-item">
                     <i class="icon faq-icon"></i>
                     常见问题
