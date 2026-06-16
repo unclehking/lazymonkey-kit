@@ -42,11 +42,15 @@
                     <i class="icon image-icon"></i>
                     Base64转图片
                 </router-link>
-
                 <router-link to="/image-compress" class="menu-item">
                     <i class="fas fa-compress"></i>
                     图片压缩
                 </router-link>
+                <router-link to="/color-img" class="menu-item">
+                    <i class="icon image-icon"></i>
+                    纯色图片生成
+                </router-link>
+                <view class="divider"></view>
                 <router-link to="/generate-qrcode" class="menu-item">
                     <i class="icon qrcode-icon"></i>
                     二维码生成
@@ -55,10 +59,7 @@
                     <i class="icon qrcode-icon"></i>
                     二维码解码
                 </router-link>
-                <router-link to="/color-img" class="menu-item">
-                    <i class="icon image-icon"></i>
-                    纯色图片生成
-                </router-link>
+                <view class="divider"></view>
                 <router-link to="/json-format" class="menu-item">
                     <i class="icon base64-icon"></i>
                     JSON格式化
@@ -75,6 +76,7 @@
                     <i class="fas fa-eye-dropper"></i>
                     屏幕取色器
                 </router-link>
+                <view class="divider"></view>
                 <router-link to="/faq" class="menu-item">
                     <i class="icon faq-icon"></i>
                     常见问题
@@ -138,6 +140,13 @@ export default {
     width: 150px;
     background-color: #2c3e50;
     padding: 20px 0;
+}
+
+.divider {
+  display: block;
+  height: 1px;
+  background-color: #f0eeee37;
+  margin: 10px;
 }
 
 .menu-item {
