@@ -4,8 +4,7 @@
 
     <div class="picker-area">
       <button v-if="isSupported" class="pick-btn" @click="pickColor">
-        <i class="fas fa-eye-dropper"></i>
-        点击取色
+        <span>✏️</span>点击取色
       </button>
       <p v-else class="unsupported">当前浏览器不支持 EyeDropper API，请使用 Chrome 或 Edge</p>
     </div>
@@ -130,7 +129,10 @@ h2 {
 .pick-btn:hover {
   background: #2980b9;
 }
-
+.pick-btn span {
+  transform: scaleX(-1);
+  display: inline-block;
+}
 .unsupported {
   color: #999;
   text-align: center;
