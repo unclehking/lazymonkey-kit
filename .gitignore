@@ -30,6 +30,9 @@ pnpm-debug.log*
 .env.*
 !.env.example
 
+# Publish config
+scripts/publish.js
+
 # Cache
 .cache
 .temp 

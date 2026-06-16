@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm run *)",
       "Bash(grep -r '\\\\$toast' /Users/hking/workspace/lazymonkey-kit/src/views/)",
-      "Bash(curl -s http://localhost:3001/password-generator)"
+      "Bash(curl -s http://localhost:3001/password-generator)",
+      "Bash(npm install *)"
     ]
   }
 }
