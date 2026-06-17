@@ -25,6 +25,7 @@
                 </svg>
                 懒猴工具箱
             </router-link>
+            <span> --&nbsp;&nbsp;完全使用AI生成的工具站</span>
         </header>
 
         <div class="main-content">
@@ -125,12 +126,15 @@ export default {
     background-color: #fff;
     height: 60px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: 0 20px;
     border-bottom: 1px solid #eee;
 }
-
+.header span{
+  font-size: 12px;
+  color: #676767;
+  margin-left: 10px;
+}
 .main-content {
     flex: 1;
     display: flex;
