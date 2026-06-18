@@ -79,6 +79,11 @@
                     屏幕取色器
                 </router-link>
                 <view class="divider"></view>
+                <router-link to="/doodle-board" class="menu-item">
+                    <i class="fas fa-paint-brush"></i>
+                    涂鸦画板
+                </router-link>
+                <view class="divider"></view>
                 <router-link to="/faq" class="menu-item">
                     <i class="icon faq-icon"></i>
                     常见问题

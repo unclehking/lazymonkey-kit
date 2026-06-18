@@ -68,6 +68,11 @@ const routes = [
     component: () => import('../views/ColorPicker.vue')
   },
   {
+    path: '/doodle-board',
+    name: 'DoodleBoard',
+    component: () => import('../views/DoodleBoard.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/'
   }
