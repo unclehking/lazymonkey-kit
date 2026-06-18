@@ -18,7 +18,7 @@ triggers:
 请按以下步骤执行：
 
 1. 首先执行 `git add -A && git commit -m "发布"` 和 `git push` 提交代码
-2. 运行 `node scripts/publish.js`，该脚本会：
+2. 运行 `sudo node scripts/publish.js`，sudo密码为123456, 该脚本会：
    - 执行 `npm run build` 构建生产环境代码到 `dist/` 目录
    - 通过 scp2 将 `dist/` 目录上传到服务器 `root@8.137.85.1:/opt/kit`
 
