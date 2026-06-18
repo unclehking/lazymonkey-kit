@@ -5,7 +5,11 @@
       "Bash(grep -r '\\\\$toast' /Users/hking/workspace/lazymonkey-kit/src/views/)",
       "Bash(curl -s http://localhost:3001/password-generator)",
       "Bash(npm install *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(node *)",
+      "Bash(sudo rm *)"
     ]
   }
 }
