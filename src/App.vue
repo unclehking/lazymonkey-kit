@@ -74,6 +74,11 @@
                     密码生成器
                 </router-link>
                 <view class="divider"></view>
+                <router-link to="/timestamp-convert" class="menu-item">
+                    <i class="fas fa-clock"></i>
+                    时间戳转换
+                </router-link>
+                <view class="divider"></view>
                 <router-link to="/color-picker" class="menu-item">
                     <i class="fas fa-eye-dropper"></i>
                     屏幕取色器

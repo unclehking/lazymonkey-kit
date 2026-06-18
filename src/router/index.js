@@ -63,6 +63,11 @@ const routes = [
     component: () => import('../views/PasswordGenerator.vue')
   },
   {
+    path: '/timestamp-convert',
+    name: 'TimestampConvert',
+    component: () => import('../views/TimestampConvert.vue')
+  },
+  {
     path: '/color-picker',
     name: 'ColorPicker',
     component: () => import('../views/ColorPicker.vue')
