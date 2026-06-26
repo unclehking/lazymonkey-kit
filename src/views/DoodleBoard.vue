@@ -205,7 +205,7 @@ export default {
             }
 
             this.ctx.putImageData(this.previewSnapshot, 0, 0)
-            this.drawShape(pos)
+            this.drawShape(pos, e.shiftKey)
         },
         endDraw() {
             if (!this.isDrawing) return
@@ -215,13 +215,19 @@ export default {
             this.startPoint = null
             this.historyStack.push(this.$refs.canvas.toDataURL())
         },
-        drawShape(endPoint) {
+        drawShape(endPoint, isConstrained = false) {
             if (!this.startPoint) return
 
             const x = this.startPoint.x
             const y = this.startPoint.y
-            const width = endPoint.x - x
-            const height = endPoint.y - y
+            let width = endPoint.x - x
+            let height = endPoint.y - y
+
+            if (isConstrained) {
+                const size = Math.min(Math.abs(width), Math.abs(height))
+                width = Math.sign(width || 1) * size
+                height = Math.sign(height || 1) * size
+            }
 
             this.ctx.strokeStyle = this.penColor
             this.ctx.lineWidth = this.penSize
