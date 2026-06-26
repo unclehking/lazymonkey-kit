@@ -75,19 +75,17 @@
                 @keydown.ctrl.enter.prevent="commitText"
                 @keydown.meta.enter.prevent="commitText"
             ></textarea>
-            <button
-                v-if="textEditor.visible"
-                type="button"
-                class="text-drag-handle"
-                :style="textDragHandleStyle"
-                title="拖动文字"
-                @mousedown.prevent="startMoveText"
-                @touchstart.prevent="startMoveText"
-            >
-                ⋮⋮
-            </button>
-            <div v-if="textEditor.visible" class="text-actions" :style="textActionsStyle">
-                <button @click="commitText" class="tool-btn primary">确定</button>
+            <div v-if="textEditor.visible" class="text-toolbar" :style="textToolbarStyle">
+                <button
+                    type="button"
+                    class="text-drag-handle"
+                    title="拖动文字"
+                    @mousedown.prevent="startMoveText"
+                    @touchstart.prevent="startMoveText"
+                >
+                    ⋮⋮
+                </button>
+                <button @click="commitText" class="tool-btn primary">确认</button>
                 <button @click="cancelText" class="tool-btn">取消</button>
             </div>
         </div>
@@ -142,16 +140,10 @@ export default {
                 minHeight: Math.max(this.textSize * 2.4, 48) + 'px'
             }
         },
-        textDragHandleStyle() {
+        textToolbarStyle() {
             return {
                 left: this.textEditor.x + 'px',
-                top: Math.max(this.textEditor.y - 24, 0) + 'px'
-            }
-        },
-        textActionsStyle() {
-            return {
-                left: this.textEditor.x + 'px',
-                top: this.textEditor.y + Math.max(this.textSize * 2.4, 48) + 8 + 'px'
+                top: Math.max(this.textEditor.y - 32, 0) + 'px'
             }
         }
     },
@@ -549,11 +541,26 @@ canvas {
     font-family: Arial, "Microsoft YaHei", sans-serif;
 }
 
-.text-drag-handle {
+.text-toolbar {
     position: absolute;
     z-index: 4;
-    width: 34px;
-    height: 22px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.text-toolbar .tool-btn {
+    padding: 4px 10px;
+    font-size: 13px;
+}
+
+.text-drag-handle {
+    width: 30px;
+    height: 24px;
     border: 1px solid #0065a0;
     border-radius: 4px;
     background: #fff;
@@ -562,12 +569,5 @@ canvas {
     line-height: 18px;
     font-size: 13px;
     letter-spacing: 0;
-}
-
-.text-actions {
-    position: absolute;
-    z-index: 3;
-    display: flex;
-    gap: 6px;
 }
 </style>
