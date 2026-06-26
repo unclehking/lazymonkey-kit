@@ -75,6 +75,17 @@
                 @keydown.ctrl.enter.prevent="commitText"
                 @keydown.meta.enter.prevent="commitText"
             ></textarea>
+            <button
+                v-if="textEditor.visible"
+                type="button"
+                class="text-drag-handle"
+                :style="textDragHandleStyle"
+                title="拖动文字"
+                @mousedown.prevent="startMoveText"
+                @touchstart.prevent="startMoveText"
+            >
+                ⋮⋮
+            </button>
             <div v-if="textEditor.visible" class="text-actions" :style="textActionsStyle">
                 <button @click="commitText" class="tool-btn primary">确定</button>
                 <button @click="cancelText" class="tool-btn">取消</button>
@@ -104,6 +115,11 @@ export default {
                 y: 0,
                 value: ''
             },
+            textMove: {
+                active: false,
+                offsetX: 0,
+                offsetY: 0
+            },
             isDrawing: false,
             ctx: null,
             startPoint: null,
@@ -126,6 +142,12 @@ export default {
                 minHeight: Math.max(this.textSize * 2.4, 48) + 'px'
             }
         },
+        textDragHandleStyle() {
+            return {
+                left: this.textEditor.x + 'px',
+                top: Math.max(this.textEditor.y - 24, 0) + 'px'
+            }
+        },
         textActionsStyle() {
             return {
                 left: this.textEditor.x + 'px',
@@ -139,6 +161,7 @@ export default {
     },
     beforeUnmount() {
         window.removeEventListener('resize', this.initCanvas)
+        this.stopMoveText()
     },
     methods: {
         initCanvas() {
@@ -264,6 +287,44 @@ export default {
             if (this.currentTool !== 'text') return
             this.$refs.canvas.focus()
         },
+        startMoveText(e) {
+            const point = this.getClientPoint(e)
+            const wrapperRect = this.$refs.canvasWrapper.getBoundingClientRect()
+            this.textMove = {
+                active: true,
+                offsetX: point.clientX - wrapperRect.left - this.textEditor.x,
+                offsetY: point.clientY - wrapperRect.top - this.textEditor.y
+            }
+            window.addEventListener('mousemove', this.moveText)
+            window.addEventListener('mouseup', this.stopMoveText)
+            window.addEventListener('touchmove', this.moveText, { passive: false })
+            window.addEventListener('touchend', this.stopMoveText)
+        },
+        moveText(e) {
+            if (!this.textMove.active) return
+            e.preventDefault()
+            const point = this.getClientPoint(e)
+            const wrapperRect = this.$refs.canvasWrapper.getBoundingClientRect()
+            const editor = this.$refs.textEditor
+            const maxX = Math.max(wrapperRect.width - editor.offsetWidth, 0)
+            const maxY = Math.max(wrapperRect.height - editor.offsetHeight, 0)
+            const nextX = point.clientX - wrapperRect.left - this.textMove.offsetX
+            const nextY = point.clientY - wrapperRect.top - this.textMove.offsetY
+
+            this.textEditor.x = Math.min(Math.max(nextX, 0), maxX)
+            this.textEditor.y = Math.min(Math.max(nextY, 0), maxY)
+        },
+        stopMoveText() {
+            this.textMove.active = false
+            window.removeEventListener('mousemove', this.moveText)
+            window.removeEventListener('mouseup', this.stopMoveText)
+            window.removeEventListener('touchmove', this.moveText)
+            window.removeEventListener('touchend', this.stopMoveText)
+        },
+        getClientPoint(e) {
+            const touch = e.touches ? e.touches[0] : null
+            return touch || e
+        },
         commitText() {
             if (!this.textEditor.visible) return
             const text = this.textEditor.value.trim()
@@ -285,6 +346,7 @@ export default {
         },
         cancelText() {
             if (!this.textEditor.visible) return
+            this.stopMoveText()
             this.textEditor.visible = false
         },
         touchStart(e) {
@@ -485,6 +547,21 @@ canvas {
     resize: both;
     outline: none;
     font-family: Arial, "Microsoft YaHei", sans-serif;
+}
+
+.text-drag-handle {
+    position: absolute;
+    z-index: 4;
+    width: 34px;
+    height: 22px;
+    border: 1px solid #0065a0;
+    border-radius: 4px;
+    background: #fff;
+    color: #0065a0;
+    cursor: move;
+    line-height: 18px;
+    font-size: 13px;
+    letter-spacing: 0;
 }
 
 .text-actions {
