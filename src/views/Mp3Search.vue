@@ -53,7 +53,7 @@
                     autoplay
                     @timeupdate="updateLyricIndex"
                     @seeked="updateLyricIndex"
-                    @ended="activeLyricIndex = -1"
+                    @ended="handleSongEnded"
                 ></audio>
             </div>
         </div>
@@ -75,9 +75,20 @@
 
         <div class="result-header">
             <h2>{{ hasSearched ? '搜索结果' : '热门推荐' }}</h2>
-            <button class="plain-btn" type="button" :disabled="loading" @click="loadHomeSongs">
-                换一批推荐
-            </button>
+            <div class="result-actions">
+                <button
+                    class="plain-btn sequence-btn"
+                    type="button"
+                    :class="{ active: sequenceEnabled }"
+                    :disabled="!results.length"
+                    @click="sequenceEnabled = !sequenceEnabled"
+                >
+                    顺序播放：{{ sequenceEnabled ? '开' : '关' }}
+                </button>
+                <button class="plain-btn" type="button" :disabled="loading" @click="loadHomeSongs">
+                    换一批推荐
+                </button>
+            </div>
         </div>
 
         <div v-if="results.length" class="song-list">
@@ -88,8 +99,20 @@
                     <p>{{ song.singer || '未知歌手' }}</p>
                     <span v-if="song.duration">{{ song.duration }}</span>
                 </div>
-                <button type="button" :disabled="song.loading" @click="playSong(song)">
-                    {{ song.loading ? '加载...' : '播放' }}
+                <button
+                    type="button"
+                    :class="{ 'playing-btn': isCurrentSong(song) }"
+                    :disabled="song.loading || isCurrentSong(song)"
+                    :title="isCurrentSong(song) ? '正在播放' : '播放'"
+                    @click="playSong(song)"
+                >
+                    <span v-if="isCurrentSong(song)" class="playing-bars" aria-label="正在播放">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </span>
+                    <span v-else>{{ song.loading ? '加载...' : '播放' }}</span>
                 </button>
             </div>
         </div>
@@ -126,6 +149,7 @@ export default {
             lyricsLoading: false,
             lyricsMessage: '',
             activeLyricIndex: -1,
+            sequenceEnabled: false,
             defaultCover: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><rect width="120" height="120" fill="%232c3e50"/><path d="M75 26v48.5A14.5 14.5 0 1 1 68 62V39l-28 6v37.5A14.5 14.5 0 1 1 33 70V38l42-9z" fill="%23fff"/></svg>'
         }
     },
@@ -228,6 +252,29 @@ export default {
 
             const randomIndex = Math.floor(Math.random() * playableSongs.length)
             await this.playSong(playableSongs[randomIndex])
+        },
+        async handleSongEnded() {
+            this.activeLyricIndex = -1
+            if (!this.sequenceEnabled) return
+
+            await this.playNextSong()
+        },
+        async playNextSong() {
+            const playableSongs = this.results.filter((song) => song.sourceId)
+            if (!playableSongs.length) {
+                this.showToast('当前列表没有可顺序播放的歌曲')
+                return
+            }
+
+            const currentIndex = playableSongs.findIndex((song) => this.isCurrentSong(song))
+            const nextSong = playableSongs[currentIndex + 1]
+            if (!nextSong) {
+                this.sequenceEnabled = false
+                this.showMessage('当前列表已播放完毕。')
+                return
+            }
+
+            await this.playSong(nextSong)
         },
         async verifySource() {
             if (!this.verifyToken) {
@@ -364,6 +411,7 @@ export default {
                 }
 
                 this.currentSong = {
+                    sourceId: song.sourceId,
                     title: data.title || `${song.singer} - ${song.title}`,
                     pic: data.pic || song.pic,
                     audioUrl: data.url,
@@ -504,6 +552,9 @@ export default {
         },
         setDefaultCover(event) {
             event.target.src = this.defaultCover
+        },
+        isCurrentSong(song) {
+            return Boolean(this.currentSong?.sourceId && song.sourceId === this.currentSong.sourceId)
         },
         showMessage(text, type = 'info') {
             this.message = text
@@ -728,6 +779,7 @@ audio {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
     margin: 22px 0 12px;
 }
 
@@ -736,14 +788,28 @@ audio {
     font-size: 20px;
 }
 
+.result-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
 .plain-btn {
     background: transparent;
     color: #0065a0;
     padding: 8px 10px;
 }
 
-.plain-btn:hover {
+.plain-btn:hover,
+.sequence-btn.active {
     background: #eaf4fb;
+}
+
+.sequence-btn.active {
+    color: #1f7a5b;
+    font-weight: 600;
 }
 
 .song-list {
@@ -791,6 +857,54 @@ audio {
     min-width: 72px;
 }
 
+.song-item button.playing-btn,
+.song-item button.playing-btn:disabled {
+    background: #1f7a5b;
+    cursor: not-allowed;
+    opacity: 1;
+}
+
+.playing-bars {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: 20px;
+}
+
+.playing-bars span {
+    width: 4px;
+    height: 8px;
+    border-radius: 2px;
+    background: #fff;
+    animation: musicBar 0.8s ease-in-out infinite;
+}
+
+.playing-bars span:nth-child(2) {
+    animation-delay: 0.12s;
+}
+
+.playing-bars span:nth-child(3) {
+    animation-delay: 0.24s;
+}
+
+.playing-bars span:nth-child(4) {
+    animation-delay: 0.36s;
+}
+
+@keyframes musicBar {
+    0%,
+    100% {
+        height: 6px;
+        opacity: 0.72;
+    }
+
+    50% {
+        height: 18px;
+        opacity: 1;
+    }
+}
+
 .empty {
     text-align: center;
     color: #7b8590;
@@ -810,6 +924,16 @@ audio {
 
     .search-box button {
         height: 42px;
+    }
+
+    .result-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .result-actions {
+        justify-content: flex-start;
+        width: 100%;
     }
 
     .song-item {
