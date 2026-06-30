@@ -118,7 +118,12 @@
             </div>
         </div>
 
-        <div v-else-if="!loading" class="empty">
+        <div v-if="loadingMore" class="load-more-state">加载更多中...</div>
+        <div v-else-if="hasSearched && results.length && !hasMoreResults" class="load-more-state">
+            没有更多歌曲了
+        </div>
+
+        <div v-if="!results.length && !loading" class="empty">
             暂无歌曲，换个关键词试试。
         </div>
     </div>
@@ -155,6 +160,11 @@ export default {
             lyricsMessage: '',
             activeLyricIndex: -1,
             sequenceEnabled: false,
+            currentPage: 1,
+            nextPageUrl: '',
+            hasMoreResults: false,
+            loadingMore: false,
+            scrollContainer: null,
             originalTitle: '',
             titleScrollTimer: null,
             titleScrollIndex: 0,
@@ -165,6 +175,10 @@ export default {
     mounted() {
         this.originalTitle = document.title
         this.restoreCachedSettings()
+        this.$nextTick(() => {
+            this.scrollContainer = this.$el.closest('.content') || window
+            this.scrollContainer.addEventListener('scroll', this.handlePageScroll, { passive: true })
+        })
         if (this.keyword) {
             this.searchMusic()
         } else {
@@ -172,6 +186,7 @@ export default {
         }
     },
     beforeUnmount() {
+        this.scrollContainer?.removeEventListener('scroll', this.handlePageScroll)
         this.resetPageTitle()
     },
     watch: {
@@ -189,6 +204,7 @@ export default {
         },
         async loadHomeSongs() {
             this.hasSearched = false
+            this.resetPagination()
             return await this.fetchSongList(`${SOURCE_PROXY}/`, '推荐加载失败，请稍后重试。')
         },
         async searchMusic() {
@@ -197,14 +213,30 @@ export default {
                 return
             }
             this.hasSearched = true
+            this.resetPagination()
             const url = `${SOURCE_PROXY}/so/${encodeURIComponent(this.keyword)}.html`
-            return await this.fetchSongList(url, '搜索失败，可能是来源站限制访问或代理未配置。')
+            return await this.fetchSongList(url, '搜索失败，可能是来源站限制访问或代理未配置。', {
+                page: 1
+            })
         },
-        async fetchSongList(url, errorText) {
-            this.loading = true
+        resetPagination() {
+            this.currentPage = 1
+            this.nextPageUrl = ''
+            this.hasMoreResults = false
+            this.loadingMore = false
+        },
+        async fetchSongList(url, errorText, options = {}) {
+            const { append = false, page = 1 } = options
+            if (append) {
+                this.loadingMore = true
+            } else {
+                this.loading = true
+            }
             this.message = ''
             this.needVerify = false
-            this.lastRequest = { url, errorText }
+            if (!append) {
+                this.lastRequest = { url, errorText }
+            }
             const controller = new AbortController()
             const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
             try {
@@ -220,9 +252,12 @@ export default {
                     throw new Error(`请求失败：${response.status}`)
                 }
                 if (html.includes('安全人机验证')) {
-                    this.results = []
+                    if (!append) {
+                        this.results = []
+                    }
                     this.verifyToken = this.getVerifyToken(html)
                     this.needVerify = Boolean(this.verifyToken)
+                    this.hasMoreResults = false
                     this.showMessage(
                         this.needVerify
                             ? '来源站需要安全验证，请点击下方按钮在当前代理链路中完成验证。'
@@ -233,21 +268,64 @@ export default {
                 }
 
                 const songs = this.parseSongs(html)
-                this.results = songs
+                const pagination = this.parsePagination(html, url, page)
+                if (append) {
+                    this.results = this.mergeSongs(this.results, songs)
+                } else {
+                    this.results = songs
+                }
+                this.currentPage = page
+                this.nextPageUrl = pagination.nextPageUrl
+                this.hasMoreResults = this.hasSearched && Boolean(this.nextPageUrl)
                 this.needVerify = false
                 this.verifyToken = ''
-                if (!songs.length) {
+                if (!append && !songs.length) {
                     this.showMessage('没有解析到歌曲，来源站可能调整了页面结构。', 'error')
+                } else if (append && !songs.length) {
+                    this.hasMoreResults = false
                 }
                 return songs
             } catch (error) {
-                this.results = []
+                if (!append) {
+                    this.results = []
+                } else {
+                    this.hasMoreResults = false
+                }
                 const reason = error.name === 'AbortError' ? '请求超时' : error.message
                 this.showMessage(`${errorText}${reason ? `（${reason}）` : ''}`, 'error')
                 return null
             } finally {
                 window.clearTimeout(timer)
-                this.loading = false
+                if (append) {
+                    this.loadingMore = false
+                } else {
+                    this.loading = false
+                }
+            }
+        },
+        async loadMoreSongs() {
+            if (!this.hasSearched || this.loading || this.loadingMore || !this.hasMoreResults) return
+
+            const nextUrl = this.nextPageUrl || this.getSearchPageUrl(this.currentPage + 1)
+            if (!nextUrl) {
+                this.hasMoreResults = false
+                return
+            }
+
+            await this.fetchSongList(nextUrl, '加载更多失败，请稍后重试。', {
+                append: true,
+                page: this.currentPage + 1
+            })
+        },
+        handlePageScroll() {
+            if (!this.hasSearched || !this.results.length || !this.hasMoreResults || this.loading || this.loadingMore) return
+
+            const target = this.scrollContainer === window ? document.documentElement : this.scrollContainer
+            const scrollTop = this.scrollContainer === window ? window.scrollY : target.scrollTop
+            const clientHeight = this.scrollContainer === window ? window.innerHeight : target.clientHeight
+            const scrollHeight = target.scrollHeight
+            if (scrollHeight - scrollTop - clientHeight < 240) {
+                this.loadMoreSongs()
             }
         },
         async randomListen() {
@@ -399,6 +477,47 @@ export default {
             })
 
             return Array.from(songMap.values()).slice(0, 30)
+        },
+        mergeSongs(currentSongs, nextSongs) {
+            const songMap = new Map()
+            ;[...currentSongs, ...nextSongs].forEach((song) => {
+                if (!songMap.has(song.url)) {
+                    songMap.set(song.url, song)
+                }
+            })
+            return Array.from(songMap.values())
+        },
+        parsePagination(html, currentUrl, page) {
+            const document = new DOMParser().parseFromString(html, 'text/html')
+            const pageLinks = Array.from(document.querySelectorAll('a[href]'))
+            const nextLink = pageLinks.find((link) => {
+                const text = link.textContent.replace(/\s+/g, '')
+                const href = link.getAttribute('href') || ''
+                return href && (text.includes('下一页') || text === '下一页' || text === '下页' || text === '>')
+            })
+            const nextPageUrl = nextLink
+                ? this.normalizeProxyUrl(nextLink.getAttribute('href'), currentUrl)
+                : this.getSearchPageUrl(page + 1)
+
+            return {
+                nextPageUrl: nextPageUrl && nextPageUrl !== currentUrl ? nextPageUrl : ''
+            }
+        },
+        getSearchPageUrl(page) {
+            if (!this.hasSearched || !this.keyword || page <= 1) return ''
+            const encodedKeyword = encodeURIComponent(this.keyword)
+            return `${SOURCE_PROXY}/so/${encodedKeyword}-${page}.html`
+        },
+        normalizeProxyUrl(url, currentUrl = '') {
+            if (!url) return ''
+            if (url.startsWith(SOURCE_PROXY)) return url
+            if (url.startsWith(`//${new URL(SOURCE_HOST).host}`)) return url.replace(`//${new URL(SOURCE_HOST).host}`, SOURCE_PROXY)
+            if (url.startsWith(SOURCE_HOST)) return url.replace(SOURCE_HOST, SOURCE_PROXY)
+            if (url.startsWith('/')) return `${SOURCE_PROXY}${url}`
+            if (url.startsWith('http')) return url
+
+            const basePath = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1) || `${SOURCE_PROXY}/`
+            return `${basePath}${url}`
         },
         parseTitle(text = '') {
             const cleanText = this.decodeHtml(text).replace(/\s+/g, ' ').trim()
@@ -985,6 +1104,13 @@ audio {
     text-align: center;
     color: #7b8590;
     padding: 38px 0;
+}
+
+.load-more-state {
+    color: #7b8590;
+    font-size: 14px;
+    padding: 18px 0 6px;
+    text-align: center;
 }
 
 @media (max-width: 768px) {
