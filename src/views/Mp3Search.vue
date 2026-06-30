@@ -44,18 +44,7 @@
         <div v-if="currentSong" class="player">
             <img v-if="currentSong.pic" :src="currentSong.pic" :alt="currentSong.title">
             <div class="player-info">
-                <div class="player-topline">
-                    <div class="playing-label">正在播放</div>
-                    <button
-                        type="button"
-                        class="notify-btn"
-                        :class="{ active: lyricNotifyEnabled }"
-                        :disabled="!notificationSupported"
-                        @click="toggleLyricNotification"
-                    >
-                        歌词通知：{{ lyricNotifyEnabled ? '开' : '关' }}
-                    </button>
-                </div>
+                <div class="playing-label">正在播放</div>
                 <h2>{{ currentSong.title }}</h2>
                 <audio
                     ref="audioPlayer"
@@ -64,7 +53,6 @@
                     autoplay
                     @timeupdate="updateLyricIndex"
                     @seeked="updateLyricIndex"
-                    @play="handleAudioPlay"
                     @ended="handleSongEnded"
                 ></audio>
             </div>
@@ -162,22 +150,11 @@ export default {
             lyricsMessage: '',
             activeLyricIndex: -1,
             sequenceEnabled: false,
-            notificationSupported: false,
-            notificationPermission: 'default',
-            lyricNotifyEnabled: false,
-            lyricNotification: null,
-            lyricNotificationTimer: null,
-            lastNotifiedLyricIndex: -1,
             defaultCover: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><rect width="120" height="120" fill="%232c3e50"/><path d="M75 26v48.5A14.5 14.5 0 1 1 68 62V39l-28 6v37.5A14.5 14.5 0 1 1 33 70V38l42-9z" fill="%23fff"/></svg>'
         }
     },
     mounted() {
-        this.notificationSupported = 'Notification' in window
-        this.notificationPermission = this.notificationSupported ? Notification.permission : 'unsupported'
         this.loadHomeSongs()
-    },
-    beforeUnmount() {
-        this.closeLyricNotification()
     },
     methods: {
         async loadHomeSongs() {
@@ -281,10 +258,6 @@ export default {
             if (!this.sequenceEnabled) return
 
             await this.playNextSong()
-        },
-        handleAudioPlay() {
-            this.updateLyricIndex()
-            this.notifyActiveLyric(this.activeLyricIndex, true)
         },
         async playNextSong() {
             const playableSongs = this.results.filter((song) => song.sourceId)
@@ -462,7 +435,6 @@ export default {
             this.lyrics = []
             this.lyricsMessage = ''
             this.activeLyricIndex = -1
-            this.lastNotifiedLyricIndex = -1
 
             if (!lrcUrl) {
                 this.lyricsMessage = '暂无歌词'
@@ -486,7 +458,6 @@ export default {
                 } else {
                     this.activeLyricIndex = 0
                     this.scrollActiveLyric('auto')
-                    this.notifyActiveLyric(0)
                 }
             } catch (error) {
                 this.lyricsMessage = error.name === 'AbortError' ? '歌词加载超时' : '歌词加载失败'
@@ -542,72 +513,7 @@ export default {
             if (nextIndex !== this.activeLyricIndex) {
                 this.activeLyricIndex = nextIndex
                 this.scrollActiveLyric()
-                this.notifyActiveLyric(nextIndex)
             }
-        },
-        async toggleLyricNotification() {
-            if (!this.notificationSupported) {
-                this.showToast('当前浏览器不支持桌面通知')
-                return
-            }
-
-            if (this.lyricNotifyEnabled) {
-                this.lyricNotifyEnabled = false
-                this.closeLyricNotification()
-                return
-            }
-
-            if (Notification.permission === 'default') {
-                this.notificationPermission = await Notification.requestPermission()
-            } else {
-                this.notificationPermission = Notification.permission
-            }
-
-            if (this.notificationPermission !== 'granted') {
-                this.showMessage('浏览器没有授予通知权限，无法显示歌词桌面通知。', 'error')
-                return
-            }
-
-            this.lyricNotifyEnabled = true
-            this.showToast('歌词桌面通知已开启', 'success')
-            this.showDesktopNotification('歌词桌面通知已开启', '播放时会在这里显示当前歌词。')
-            this.notifyActiveLyric(this.activeLyricIndex, true)
-        },
-        notifyActiveLyric(index, force = false) {
-            if (!this.lyricNotifyEnabled || this.notificationPermission !== 'granted') return
-            if (index < 0 || (!force && index === this.lastNotifiedLyricIndex) || !this.lyrics[index]) return
-
-            const audio = this.$refs.audioPlayer
-            if (!audio || audio.paused || audio.ended) return
-
-            this.lastNotifiedLyricIndex = index
-            this.showDesktopNotification(this.currentSong?.title || '听歌', this.lyrics[index].text)
-        },
-        showDesktopNotification(title, body) {
-            try {
-                this.closeLyricNotification()
-                this.lyricNotification = new Notification(title, {
-                    body,
-                    icon: this.currentSong?.pic || undefined,
-                    tag: 'lazy-monkey-current-lyric',
-                    silent: true,
-                    requireInteraction: false
-                })
-                this.lyricNotificationTimer = window.setTimeout(() => {
-                    this.closeLyricNotification()
-                }, 5000)
-            } catch (error) {
-                this.lyricNotifyEnabled = false
-                this.showMessage('桌面通知发送失败，请检查浏览器或系统通知权限。', 'error')
-            }
-        },
-        closeLyricNotification() {
-            if (this.lyricNotificationTimer) {
-                window.clearTimeout(this.lyricNotificationTimer)
-                this.lyricNotificationTimer = null
-            }
-            this.lyricNotification?.close?.()
-            this.lyricNotification = null
         },
         scrollActiveLyric(behavior = 'smooth') {
             this.$nextTick(() => {
@@ -809,34 +715,10 @@ button:disabled {
     min-width: 0;
 }
 
-.player-topline {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 6px;
-}
-
 .playing-label {
     color: #0065a0;
     font-size: 13px;
-}
-
-.notify-btn {
-    border: 1px solid #cde9f3;
-    border-radius: 6px;
-    background: #eef7fb;
-    color: #23627a;
-    cursor: pointer;
-    font-size: 13px;
-    padding: 6px 10px;
-}
-
-.notify-btn.active {
-    border-color: #b9dfd1;
-    background: #e7f6ef;
-    color: #1f7a5b;
-    font-weight: 600;
+    margin-bottom: 6px;
 }
 
 .player h2 {
@@ -1032,15 +914,6 @@ audio {
 @media (max-width: 768px) {
     .toolbar,
     .player {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .player-info {
-        width: 100%;
-    }
-
-    .player-topline {
         align-items: flex-start;
         flex-direction: column;
     }
