@@ -91,7 +91,7 @@
                 <view class="divider"></view>
                 <router-link to="/mp3-search" class="menu-item">
                     <i class="fas fa-music"></i>
-                    MP3搜索
+                    听歌
                 </router-link>
                 <view class="divider"></view>
                 <router-link to="/faq" class="menu-item">

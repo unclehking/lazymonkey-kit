@@ -2,7 +2,7 @@
     <div class="mp3-page">
         <div class="toolbar">
             <div>
-                <h1>MP3音乐搜索</h1>
+                <h1>听歌</h1>
                 <p>来源：好听音乐网 thttt.com</p>
             </div>
             <a class="source-link" href="https://www.thttt.com/" target="_blank" rel="noopener">打开来源站</a>
