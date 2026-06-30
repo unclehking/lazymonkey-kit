@@ -18,6 +18,14 @@
             <button type="submit" :disabled="loading || !keyword">
                 {{ loading ? '搜索中...' : '搜索' }}
             </button>
+            <button
+                type="button"
+                class="random-btn"
+                :disabled="loading || randomLoading"
+                @click="randomListen"
+            >
+                {{ randomLoading ? '随机中...' : '随机听歌' }}
+            </button>
         </form>
 
         <div v-if="message" class="message" :class="{ error: messageType === 'error' }">
@@ -38,7 +46,30 @@
             <div class="player-info">
                 <div class="playing-label">正在播放</div>
                 <h2>{{ currentSong.title }}</h2>
-                <audio ref="audioPlayer" :src="currentSong.audioUrl" controls autoplay></audio>
+                <audio
+                    ref="audioPlayer"
+                    :src="currentSong.audioUrl"
+                    controls
+                    autoplay
+                    @timeupdate="updateLyricIndex"
+                    @seeked="updateLyricIndex"
+                    @ended="activeLyricIndex = -1"
+                ></audio>
+            </div>
+        </div>
+
+        <div v-if="currentSong" class="lyrics-panel">
+            <div class="lyrics-title">歌词</div>
+            <div v-if="lyricsLoading" class="lyrics-state">歌词加载中...</div>
+            <div v-else-if="!lyrics.length" class="lyrics-state">{{ lyricsMessage || '暂无歌词' }}</div>
+            <div v-else ref="lyricsList" class="lyrics-list">
+                <div
+                    v-for="(line, index) in lyrics"
+                    :key="`${line.time}-${index}`"
+                    :class="['lyric-line', { active: index === activeLyricIndex }]"
+                >
+                    {{ line.text }}
+                </div>
             </div>
         </div>
 
@@ -88,7 +119,13 @@ export default {
             verifyToken: '',
             verifying: false,
             lastRequest: null,
+            pendingRandom: false,
+            randomLoading: false,
             hasSearched: false,
+            lyrics: [],
+            lyricsLoading: false,
+            lyricsMessage: '',
+            activeLyricIndex: -1,
             defaultCover: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><rect width="120" height="120" fill="%232c3e50"/><path d="M75 26v48.5A14.5 14.5 0 1 1 68 62V39l-28 6v37.5A14.5 14.5 0 1 1 33 70V38l42-9z" fill="%23fff"/></svg>'
         }
     },
@@ -98,7 +135,7 @@ export default {
     methods: {
         async loadHomeSongs() {
             this.hasSearched = false
-            await this.fetchSongList(`${SOURCE_PROXY}/`, '推荐加载失败，请稍后重试。')
+            return await this.fetchSongList(`${SOURCE_PROXY}/`, '推荐加载失败，请稍后重试。')
         },
         async searchMusic() {
             if (!this.keyword) {
@@ -107,7 +144,7 @@ export default {
             }
             this.hasSearched = true
             const url = `${SOURCE_PROXY}/so/${encodeURIComponent(this.keyword)}.html`
-            await this.fetchSongList(url, '搜索失败，可能是来源站限制访问或代理未配置。')
+            return await this.fetchSongList(url, '搜索失败，可能是来源站限制访问或代理未配置。')
         },
         async fetchSongList(url, errorText) {
             this.loading = true
@@ -138,7 +175,7 @@ export default {
                             : '来源站需要安全验证，但没有解析到验证令牌，请稍后重试。',
                         'error'
                     )
-                    return
+                    return null
                 }
 
                 const songs = this.parseSongs(html)
@@ -148,14 +185,49 @@ export default {
                 if (!songs.length) {
                     this.showMessage('没有解析到歌曲，来源站可能调整了页面结构。', 'error')
                 }
+                return songs
             } catch (error) {
                 this.results = []
                 const reason = error.name === 'AbortError' ? '请求超时' : error.message
                 this.showMessage(`${errorText}${reason ? `（${reason}）` : ''}`, 'error')
+                return null
             } finally {
                 window.clearTimeout(timer)
                 this.loading = false
             }
+        },
+        async randomListen() {
+            this.pendingRandom = true
+            this.randomLoading = true
+            this.message = ''
+
+            try {
+                let songs = this.results
+                if (!songs.length || this.needVerify) {
+                    this.hasSearched = false
+                    songs = await this.fetchSongList(`${SOURCE_PROXY}/`, '随机听歌失败，请稍后重试。') || []
+                }
+
+                if (this.needVerify) {
+                    this.showMessage('来源站需要安全验证，验证完成后会继续随机播放。', 'error')
+                    return
+                }
+
+                this.pendingRandom = false
+                await this.playRandomSong(songs.length ? songs : this.results)
+            } finally {
+                this.randomLoading = false
+            }
+        },
+        async playRandomSong(songs = this.results) {
+            const playableSongs = songs.filter((song) => song.sourceId)
+            if (!playableSongs.length) {
+                this.showToast('暂无可随机播放的歌曲')
+                return
+            }
+
+            const randomIndex = Math.floor(Math.random() * playableSongs.length)
+            await this.playSong(playableSongs[randomIndex])
         },
         async verifySource() {
             if (!this.verifyToken) {
@@ -197,10 +269,16 @@ export default {
                 this.needVerify = false
                 this.verifyToken = ''
                 this.showToast('验证完成，正在重新加载', 'success')
+                let songs = []
                 if (this.lastRequest) {
-                    await this.fetchSongList(this.lastRequest.url, this.lastRequest.errorText)
+                    songs = await this.fetchSongList(this.lastRequest.url, this.lastRequest.errorText) || []
                 } else {
-                    await this.loadHomeSongs()
+                    songs = await this.loadHomeSongs() || []
+                }
+
+                if (this.pendingRandom && !this.needVerify) {
+                    this.pendingRandom = false
+                    await this.playRandomSong(songs.length ? songs : this.results)
                 }
             } catch (error) {
                 const reason = error.name === 'AbortError' ? '请求超时' : error.message
@@ -288,8 +366,10 @@ export default {
                 this.currentSong = {
                     title: data.title || `${song.singer} - ${song.title}`,
                     pic: data.pic || song.pic,
-                    audioUrl: data.url
+                    audioUrl: data.url,
+                    lrcUrl: data.lrc || ''
                 }
+                this.loadLyrics(this.currentSong.lrcUrl)
                 this.$nextTick(() => {
                     this.$refs.audioPlayer?.play?.().catch(() => {
                         this.showMessage('浏览器拦截了自动播放，请手动点击播放器播放。')
@@ -302,6 +382,108 @@ export default {
                 window.clearTimeout(timer)
                 song.loading = false
             }
+        },
+        async loadLyrics(lrcUrl) {
+            this.lyrics = []
+            this.lyricsMessage = ''
+            this.activeLyricIndex = -1
+
+            if (!lrcUrl) {
+                this.lyricsMessage = '暂无歌词'
+                return
+            }
+
+            this.lyricsLoading = true
+            const controller = new AbortController()
+            const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
+            try {
+                const response = await fetch(lrcUrl, { signal: controller.signal })
+                const text = await response.text()
+
+                if (!response.ok) {
+                    throw new Error(`请求失败：${response.status}`)
+                }
+
+                this.lyrics = this.parseLyrics(this.getLrcContent(text))
+                if (!this.lyrics.length) {
+                    this.lyricsMessage = '暂无可显示歌词'
+                } else {
+                    this.activeLyricIndex = 0
+                    this.scrollActiveLyric('auto')
+                }
+            } catch (error) {
+                this.lyricsMessage = error.name === 'AbortError' ? '歌词加载超时' : '歌词加载失败'
+            } finally {
+                window.clearTimeout(timer)
+                this.lyricsLoading = false
+            }
+        },
+        getLrcContent(text) {
+            try {
+                const data = JSON.parse(text)
+                return data.lrc || text
+            } catch (error) {
+                return text
+            }
+        },
+        parseLyrics(text) {
+            const timeReg = /\[(\d{1,2}):(\d{1,2})(?:\.(\d{1,3}))?\]/g
+            const lines = []
+
+            text.split(/\r?\n/).forEach((line) => {
+                const times = [...line.matchAll(timeReg)]
+                const content = line.replace(timeReg, '').trim()
+
+                if (!times.length || !content) return
+                times.forEach((match) => {
+                    const minute = Number(match[1])
+                    const second = Number(match[2])
+                    const millisecond = Number((match[3] || '0').padEnd(3, '0'))
+                    lines.push({
+                        time: minute * 60 + second + millisecond / 1000,
+                        text: content
+                    })
+                })
+            })
+
+            return lines.sort((a, b) => a.time - b.time)
+        },
+        updateLyricIndex() {
+            if (!this.lyrics.length || !this.$refs.audioPlayer) return
+
+            const currentTime = this.$refs.audioPlayer.currentTime
+            let nextIndex = -1
+
+            for (let i = 0; i < this.lyrics.length; i++) {
+                if (this.lyrics[i].time <= currentTime + 0.2) {
+                    nextIndex = i
+                } else {
+                    break
+                }
+            }
+
+            if (nextIndex !== this.activeLyricIndex) {
+                this.activeLyricIndex = nextIndex
+                this.scrollActiveLyric()
+            }
+        },
+        scrollActiveLyric(behavior = 'smooth') {
+            this.$nextTick(() => {
+                const list = this.$refs.lyricsList
+                const activeLine = list?.querySelector('.lyric-line.active')
+                if (!list || !activeLine) return
+
+                const listRect = list.getBoundingClientRect()
+                const activeRect = activeLine.getBoundingClientRect()
+                const currentOffset = activeRect.top - listRect.top
+                const targetTop = list.scrollTop + currentOffset - (list.clientHeight - activeLine.clientHeight) / 2
+                const maxTop = Math.max(0, list.scrollHeight - list.clientHeight)
+
+                list.scrollTo({
+                    top: Math.min(Math.max(targetTop, 0), maxTop),
+                    behavior
+                })
+            })
         },
         normalizeSourceUrl(url) {
             if (url.startsWith('http')) return url
@@ -351,6 +533,7 @@ export default {
 .toolbar,
 .search-box,
 .player,
+.lyrics-panel,
 .song-item {
     background: #fff;
     border-radius: 8px;
@@ -420,6 +603,10 @@ export default {
     background: #0065a0;
     color: #fff;
     padding: 0 22px;
+}
+
+.search-box .random-btn {
+    background: #1f7a5b;
 }
 
 button:disabled {
@@ -493,6 +680,48 @@ button:disabled {
 
 audio {
     width: 100%;
+}
+
+.lyrics-panel {
+    margin-top: 12px;
+    padding: 16px;
+}
+
+.lyrics-title {
+    color: #0065a0;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.lyrics-state {
+    color: #7b8590;
+    padding: 18px 0;
+    text-align: center;
+}
+
+.lyrics-list {
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 8px 0;
+    scroll-behavior: smooth;
+}
+
+.lyric-line {
+    color: #7b8590;
+    font-size: 14px;
+    line-height: 1.8;
+    min-height: 25px;
+    padding: 2px 8px;
+    text-align: center;
+    transition: color 0.2s, font-size 0.2s, background-color 0.2s;
+}
+
+.lyric-line.active {
+    background: #eef7fb;
+    border-radius: 6px;
+    color: #0065a0;
+    font-size: 16px;
+    font-weight: 500;
 }
 
 .result-header {
@@ -594,6 +823,10 @@ audio {
 
     .song-item button {
         grid-column: 1 / -1;
+    }
+
+    .lyrics-list {
+        max-height: 180px;
     }
 }
 </style>
