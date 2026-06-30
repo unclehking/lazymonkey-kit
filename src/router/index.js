@@ -78,6 +78,11 @@ const routes = [
     component: () => import('../views/DoodleBoard.vue')
   },
   {
+    path: '/mp3-search',
+    name: 'Mp3Search',
+    component: () => import('../views/Mp3Search.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/'
   }
