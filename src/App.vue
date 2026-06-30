@@ -26,11 +26,22 @@
                 懒猴工具箱
             </router-link>
             <span> --&nbsp;&nbsp;完全使用AI生成的工具站</span>
+            <button
+                class="mobile-menu-btn"
+                type="button"
+                :aria-expanded="mobileMenuOpen ? 'true' : 'false'"
+                aria-label="打开菜单"
+                @click="mobileMenuOpen = !mobileMenuOpen"
+            >
+                <i></i>
+                <i></i>
+                <i></i>
+            </button>
         </header>
 
         <div class="main-content">
             <!-- 左侧菜单 -->
-            <nav class="sidebar">
+            <nav class="sidebar" :class="{ open: mobileMenuOpen }" @click="closeMobileMenu">
                 <router-link to="/image-convert" class="menu-item">
                     <i class="icon image-icon"></i>
                     图片格式转换
@@ -112,7 +123,8 @@
 export default {
     data() {
         return {
-            showWeixinTip: false
+            showWeixinTip: false,
+            mobileMenuOpen: false
         }
     },
     mounted() {
@@ -123,6 +135,11 @@ export default {
             const ua = navigator.userAgent.toLowerCase()
             if (ua.match(/MicroMessenger/i) == "micromessenger") {
                 this.showWeixinTip = true
+            }
+        },
+        closeMobileMenu(event) {
+            if (event.target.closest('.menu-item')) {
+                this.mobileMenuOpen = false
             }
         }
     }
@@ -144,6 +161,8 @@ export default {
     align-items: center;
     padding: 0 20px;
     border-bottom: 1px solid #eee;
+    position: relative;
+    z-index: 20;
 }
 .header span{
   font-size: 12px;
@@ -160,6 +179,29 @@ export default {
     width: 150px;
     background-color: #2c3e50;
     padding: 20px 0;
+}
+
+.mobile-menu-btn {
+    display: none;
+    width: 38px;
+    height: 38px;
+    margin-left: auto;
+    border: none;
+    border-radius: 6px;
+    background: #2c3e50;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mobile-menu-btn i {
+    display: block;
+    width: 18px;
+    height: 2px;
+    border-radius: 2px;
+    background: #fff;
 }
 
 .divider {
@@ -251,5 +293,55 @@ export default {
 
 .close-btn:hover {
     opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+    .header {
+        padding: 0 12px;
+    }
+
+    .header span {
+        display: none;
+    }
+
+    .mobile-menu-btn {
+        display: flex;
+    }
+
+    .main-content {
+        position: relative;
+    }
+
+    .sidebar {
+        display: none;
+        position: fixed;
+        top: 60px;
+        right: 12px;
+        width: min(260px, calc(100vw - 24px));
+        max-height: calc(100vh - 72px);
+        padding: 8px 0;
+        border-radius: 8px;
+        box-shadow: 0 12px 28px rgba(31, 45, 61, 0.24);
+        overflow-y: auto;
+        z-index: 30;
+    }
+
+    .sidebar.open {
+        display: block;
+    }
+
+    .menu-item {
+        padding: 12px 16px;
+        transform: none;
+    }
+
+    .menu-item.router-link-active {
+        transform: none;
+        border-radius: 0;
+    }
+
+    .content {
+        padding: 14px;
+    }
 }
 </style>
