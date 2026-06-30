@@ -97,7 +97,16 @@
                 <img :src="song.pic || defaultCover" :alt="song.title" @error="setDefaultCover">
                 <div class="song-info">
                     <h3>{{ song.title }}</h3>
-                    <p>{{ song.singer || '未知歌手' }}</p>
+                    <button
+                        v-if="song.singer"
+                        type="button"
+                        class="singer-btn"
+                        :title="`搜索 ${song.singer}`"
+                        @click="searchSinger(song.singer)"
+                    >
+                        {{ song.singer }}
+                    </button>
+                    <p v-else>未知歌手</p>
                     <span v-if="song.duration">{{ song.duration }}</span>
                 </div>
                 <button
@@ -218,6 +227,13 @@ export default {
             return await this.fetchSongList(url, '搜索失败，可能是来源站限制访问或代理未配置。', {
                 page: 1
             })
+        },
+        async searchSinger(singer) {
+            const keyword = singer?.trim()
+            if (!keyword) return
+
+            this.keyword = keyword
+            await this.searchMusic()
         },
         resetPagination() {
             this.currentPage = 1
@@ -684,19 +700,17 @@ export default {
 
             this.stopTitleScroll()
             this.currentTitleLyric = cleanText
-            const maxLength = 24
-            if (cleanText.length <= maxLength) {
+            const scrollThreshold = 10
+            if (cleanText.length <= scrollThreshold) {
                 document.title = cleanText
                 return
             }
 
-            const scrollText = `${cleanText}    `
             this.titleScrollIndex = 0
-            document.title = scrollText.slice(0, maxLength)
+            document.title = cleanText
             this.titleScrollTimer = window.setInterval(() => {
-                this.titleScrollIndex = (this.titleScrollIndex + 1) % scrollText.length
-                const doubledText = scrollText + scrollText
-                document.title = doubledText.slice(this.titleScrollIndex, this.titleScrollIndex + maxLength)
+                this.titleScrollIndex = (this.titleScrollIndex + 1) % cleanText.length
+                document.title = cleanText.slice(this.titleScrollIndex) || cleanText
             }, 450)
         },
         stopTitleScroll() {
@@ -813,7 +827,7 @@ export default {
 .source-link,
 .plain-btn,
 .search-box button,
-.song-item button {
+.song-item > button {
     border: none;
     border-radius: 6px;
     cursor: pointer;
@@ -845,7 +859,7 @@ export default {
 }
 
 .search-box button,
-.song-item button {
+.song-item > button {
     background: #0065a0;
     color: #fff;
     padding: 0 22px;
@@ -1040,20 +1054,34 @@ audio {
 }
 
 .song-info p,
-.song-info span {
+.song-info span,
+.singer-btn {
     display: block;
     color: #7b8590;
     margin-top: 5px;
     font-size: 13px;
 }
 
-.song-item button {
+.singer-btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    text-align: left;
+}
+
+.singer-btn:hover {
+    color: #0065a0;
+    text-decoration: underline;
+}
+
+.song-item > button {
     height: 36px;
     min-width: 72px;
 }
 
-.song-item button.playing-btn,
-.song-item button.playing-btn:disabled {
+.song-item > button.playing-btn,
+.song-item > button.playing-btn:disabled {
     background: #1f7a5b;
     cursor: not-allowed;
     opacity: 1;
@@ -1147,7 +1175,7 @@ audio {
         height: 54px;
     }
 
-    .song-item button {
+    .song-item > button {
         grid-column: 1 / -1;
     }
 
