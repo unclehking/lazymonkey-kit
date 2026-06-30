@@ -128,6 +128,10 @@
 const SOURCE_PROXY = '/thttt'
 const SOURCE_HOST = 'https://www.thttt.com'
 const REQUEST_TIMEOUT = 12000
+const CACHE_KEYS = {
+    keyword: 'lazy-monkey-mp3-keyword',
+    sequenceEnabled: 'lazy-monkey-mp3-sequence-enabled'
+}
 
 export default {
     name: 'Mp3Search',
@@ -160,12 +164,29 @@ export default {
     },
     mounted() {
         this.originalTitle = document.title
-        this.loadHomeSongs()
+        this.restoreCachedSettings()
+        if (this.keyword) {
+            this.searchMusic()
+        } else {
+            this.loadHomeSongs()
+        }
     },
     beforeUnmount() {
         this.resetPageTitle()
     },
+    watch: {
+        keyword(value) {
+            window.localStorage.setItem(CACHE_KEYS.keyword, value)
+        },
+        sequenceEnabled(value) {
+            window.localStorage.setItem(CACHE_KEYS.sequenceEnabled, value ? '1' : '0')
+        }
+    },
     methods: {
+        restoreCachedSettings() {
+            this.keyword = window.localStorage.getItem(CACHE_KEYS.keyword) || ''
+            this.sequenceEnabled = window.localStorage.getItem(CACHE_KEYS.sequenceEnabled) === '1'
+        },
         async loadHomeSongs() {
             this.hasSearched = false
             return await this.fetchSongList(`${SOURCE_PROXY}/`, '推荐加载失败，请稍后重试。')
