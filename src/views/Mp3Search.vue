@@ -53,6 +53,7 @@
                     autoplay
                     @timeupdate="updateLyricIndex"
                     @seeked="updateLyricIndex"
+                    @play="syncLyricTitle"
                     @ended="handleSongEnded"
                 ></audio>
             </div>
@@ -150,11 +151,19 @@ export default {
             lyricsMessage: '',
             activeLyricIndex: -1,
             sequenceEnabled: false,
+            originalTitle: '',
+            titleScrollTimer: null,
+            titleScrollIndex: 0,
+            currentTitleLyric: '',
             defaultCover: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><rect width="120" height="120" fill="%232c3e50"/><path d="M75 26v48.5A14.5 14.5 0 1 1 68 62V39l-28 6v37.5A14.5 14.5 0 1 1 33 70V38l42-9z" fill="%23fff"/></svg>'
         }
     },
     mounted() {
+        this.originalTitle = document.title
         this.loadHomeSongs()
+    },
+    beforeUnmount() {
+        this.resetPageTitle()
     },
     methods: {
         async loadHomeSongs() {
@@ -255,7 +264,10 @@ export default {
         },
         async handleSongEnded() {
             this.activeLyricIndex = -1
-            if (!this.sequenceEnabled) return
+            if (!this.sequenceEnabled) {
+                this.resetPageTitle()
+                return
+            }
 
             await this.playNextSong()
         },
@@ -417,6 +429,7 @@ export default {
                     audioUrl: data.url,
                     lrcUrl: data.lrc || ''
                 }
+                this.setPageTitle(this.currentSong.title)
                 this.loadLyrics(this.currentSong.lrcUrl)
                 this.$nextTick(() => {
                     this.$refs.audioPlayer?.play?.().catch(() => {
@@ -435,6 +448,7 @@ export default {
             this.lyrics = []
             this.lyricsMessage = ''
             this.activeLyricIndex = -1
+            this.currentTitleLyric = ''
 
             if (!lrcUrl) {
                 this.lyricsMessage = '暂无歌词'
@@ -458,6 +472,7 @@ export default {
                 } else {
                     this.activeLyricIndex = 0
                     this.scrollActiveLyric('auto')
+                    this.syncLyricTitle()
                 }
             } catch (error) {
                 this.lyricsMessage = error.name === 'AbortError' ? '歌词加载超时' : '歌词加载失败'
@@ -513,7 +528,47 @@ export default {
             if (nextIndex !== this.activeLyricIndex) {
                 this.activeLyricIndex = nextIndex
                 this.scrollActiveLyric()
+                this.syncLyricTitle()
             }
+        },
+        syncLyricTitle() {
+            const audio = this.$refs.audioPlayer
+            const lyric = this.lyrics[this.activeLyricIndex]?.text
+            if (!lyric || !audio || audio.paused || audio.ended) return
+
+            this.setPageTitle(lyric)
+        },
+        setPageTitle(text) {
+            const cleanText = String(text || '').replace(/\s+/g, ' ').trim()
+            if (!cleanText || cleanText === this.currentTitleLyric) return
+
+            this.stopTitleScroll()
+            this.currentTitleLyric = cleanText
+            const maxLength = 24
+            if (cleanText.length <= maxLength) {
+                document.title = cleanText
+                return
+            }
+
+            const scrollText = `${cleanText}    `
+            this.titleScrollIndex = 0
+            document.title = scrollText.slice(0, maxLength)
+            this.titleScrollTimer = window.setInterval(() => {
+                this.titleScrollIndex = (this.titleScrollIndex + 1) % scrollText.length
+                const doubledText = scrollText + scrollText
+                document.title = doubledText.slice(this.titleScrollIndex, this.titleScrollIndex + maxLength)
+            }, 450)
+        },
+        stopTitleScroll() {
+            if (this.titleScrollTimer) {
+                window.clearInterval(this.titleScrollTimer)
+                this.titleScrollTimer = null
+            }
+        },
+        resetPageTitle() {
+            this.stopTitleScroll()
+            this.currentTitleLyric = ''
+            document.title = this.originalTitle || '懒猴工具站-免费便捷在线工具站'
         },
         scrollActiveLyric(behavior = 'smooth') {
             this.$nextTick(() => {
