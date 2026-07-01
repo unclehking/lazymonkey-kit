@@ -45,7 +45,7 @@
             <img v-if="currentSong.pic" :src="currentSong.pic" :alt="currentSong.title">
             <div class="player-info">
                 <div class="player-header">
-                    <div class="playing-label">正在播放</div>
+                    <h2>{{ currentSong.title }}</h2>
                     <button
                         type="button"
                         class="switch-btn loop-btn"
@@ -59,7 +59,6 @@
                         </span>
                     </button>
                 </div>
-                <h2>{{ currentSong.title }}</h2>
                 <audio
                     ref="audioPlayer"
                     :src="currentSong.audioUrl"
@@ -830,6 +829,7 @@ export default {
     max-width: 980px;
     margin: 0 auto;
     color: #2c3e50;
+    padding-bottom: 142px;
 }
 
 .toolbar,
@@ -951,8 +951,18 @@ button:disabled {
     display: flex;
     align-items: center;
     gap: 18px;
-    margin-top: 16px;
+    position: fixed;
+    right: 20px;
+    bottom: -1px;
+    left: 156px;
+    z-index: 20;
+    width: min(980px, calc(100vw - 230px));
+    max-width: none;
+    margin: 0 auto;
     padding: 16px;
+    border: 1px solid #2c3e50;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 10px 30px rgba(31, 45, 61, 0.18);
 }
 
 .player img {
@@ -972,12 +982,7 @@ button:disabled {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 6px;
-}
-
-.playing-label {
-    color: #0065a0;
-    font-size: 13px;
+    margin-bottom: 10px;
 }
 
 .switch-btn {
@@ -1033,7 +1038,7 @@ button:disabled {
 
 .player h2 {
     font-size: 18px;
-    margin-bottom: 10px;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1291,10 +1296,28 @@ audio {
 }
 
 @media (max-width: 768px) {
-    .toolbar,
-    .player {
+    .toolbar {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .mp3-page {
+        padding-bottom: 128px;
+    }
+
+    .player {
+        align-items: center;
+        right: 12px;
+        bottom: 10px;
+        left: 12px;
+        max-width: none;
+        gap: 12px;
+        padding: 12px;
+    }
+
+    .player img {
+        width: 64px;
+        height: 64px;
     }
 
     .player-info {
@@ -1334,6 +1357,16 @@ audio {
 
     .lyrics-list {
         max-height: 180px;
+    }
+}
+
+@media (max-width: 420px) {
+    .player-header {
+        gap: 8px;
+    }
+
+    .player h2 {
+        font-size: 16px;
     }
 }
 </style>
