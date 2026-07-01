@@ -112,7 +112,12 @@
         </div>
 
         <div v-if="results.length" class="song-list">
-            <div v-for="song in results" :key="song.url" class="song-item">
+            <div
+                v-for="song in results"
+                :key="song.url"
+                class="song-item"
+                :class="{ playing: isCurrentSong(song) }"
+            >
                 <img :src="song.pic || defaultCover" :alt="song.title" @error="setDefaultCover">
                 <div class="song-info">
                     <h3>{{ song.title }}</h3>
@@ -141,7 +146,8 @@
                         <span></span>
                         <span></span>
                     </span>
-                    <span v-else>{{ song.loading ? '加载...' : '播放' }}</span>
+                    <span v-else-if="song.loading" class="play-loading" aria-label="加载中"></span>
+                    <span v-else class="play-icon" aria-label="播放"></span>
                 </button>
             </div>
         </div>
@@ -1112,20 +1118,31 @@ audio {
 
 .song-list {
     display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
 }
 
 .song-item {
     display: grid;
-    grid-template-columns: 64px minmax(0, 1fr) auto;
+    grid-template-columns: 56px minmax(0, 1fr) 30px;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     padding: 12px;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.song-item:hover {
+    box-shadow: 0 8px 22px rgba(31, 45, 61, 0.12);
+    transform: translateY(-1px);
+}
+
+.song-item.playing {
+    border-color: #1f7a5b;
 }
 
 .song-item img {
-    width: 64px;
-    height: 64px;
+    width: 56px;
+    height: 56px;
     border-radius: 6px;
     object-fit: cover;
     background: #2c3e50;
@@ -1165,8 +1182,19 @@ audio {
 }
 
 .song-item > button {
-    height: 36px;
-    min-width: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    border-radius: 50%;
+    opacity: 0.7;
+    padding: 0;
+}
+
+.song-item > button:hover {
+    opacity: 1;
 }
 
 .song-item > button.playing-btn,
@@ -1176,12 +1204,32 @@ audio {
     opacity: 1;
 }
 
+.play-icon {
+    width: 0;
+    height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 9px solid #fff;
+    margin-left: 2px;
+}
+
+.play-loading {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spinPlay 0.8s linear infinite;
+}
+
 .playing-bars {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 3px;
     height: 20px;
+    transform: scale(0.5);
+    transform-origin: center;
 }
 
 .playing-bars span {
@@ -1217,6 +1265,12 @@ audio {
     }
 }
 
+@keyframes spinPlay {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .empty {
     text-align: center;
     color: #7b8590;
@@ -1228,6 +1282,12 @@ audio {
     font-size: 14px;
     padding: 18px 0 6px;
     text-align: center;
+}
+
+@media (max-width: 1100px) {
+    .song-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 768px) {
@@ -1259,17 +1319,17 @@ audio {
         width: 100%;
     }
 
+    .song-list {
+        grid-template-columns: 1fr;
+    }
+
     .song-item {
-        grid-template-columns: 54px minmax(0, 1fr);
+        grid-template-columns: 54px minmax(0, 1fr) 30px;
     }
 
     .song-item img {
         width: 54px;
         height: 54px;
-    }
-
-    .song-item > button {
-        grid-column: 1 / -1;
     }
 
     .lyrics-list {
