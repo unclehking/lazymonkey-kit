@@ -42,7 +42,24 @@
         </div>
 
         <div v-if="currentSong" class="player">
-            <img v-if="currentSong.pic" :src="currentSong.pic" :alt="currentSong.title">
+            <button
+                type="button"
+                class="disc-button"
+                :class="{ playing: isAudioPlaying }"
+                :title="isAudioPlaying ? '暂停播放' : '播放音乐'"
+                @click="toggleAudioPlayback"
+            >
+                <img
+                    class="disc-cover"
+                    :src="currentSong.pic || defaultCover"
+                    :alt="currentSong.title"
+                    @error="setDefaultCover"
+                >
+                <span class="disc-center" aria-hidden="true">
+                    <span v-if="isAudioPlaying" class="pause-icon"></span>
+                    <span v-else class="play-icon"></span>
+                </span>
+            </button>
             <div class="player-info">
                 <div class="player-header">
                     <h2>{{ currentSong.title }}</h2>
@@ -67,7 +84,8 @@
                     autoplay
                     @timeupdate="updateLyricIndex"
                     @seeked="updateLyricIndex"
-                    @play="syncLyricTitle"
+                    @play="handleAudioPlay"
+                    @pause="handleAudioPause"
                     @ended="handleSongEnded"
                 ></audio>
             </div>
@@ -178,6 +196,7 @@ export default {
             keyword: '',
             results: [],
             currentSong: null,
+            isAudioPlaying: false,
             loading: false,
             message: '',
             messageType: 'info',
@@ -271,6 +290,25 @@ export default {
             if (this.sequenceEnabled) {
                 this.singleLoopEnabled = false
             }
+        },
+        toggleAudioPlayback() {
+            const audio = this.$refs.audioPlayer
+            if (!audio) return
+
+            if (audio.paused || audio.ended) {
+                audio.play().catch(() => {
+                    this.showMessage('浏览器拦截了播放，请稍后再试。')
+                })
+            } else {
+                audio.pause()
+            }
+        },
+        handleAudioPlay() {
+            this.isAudioPlaying = true
+            this.syncLyricTitle()
+        },
+        handleAudioPause() {
+            this.isAudioPlaying = false
         },
         resetPagination() {
             this.currentPage = 1
@@ -415,6 +453,7 @@ export default {
             await this.playSong(playableSongs[randomIndex])
         },
         async handleSongEnded() {
+            this.isAudioPlaying = false
             this.activeLyricIndex = -1
             if (this.singleLoopEnabled) {
                 this.syncLyricTitle()
@@ -619,6 +658,7 @@ export default {
                     throw new Error('没有拿到播放地址')
                 }
 
+                this.isAudioPlaying = false
                 this.currentSong = {
                     sourceId: song.sourceId,
                     title: data.title || `${song.singer} - ${song.title}`,
@@ -965,11 +1005,69 @@ button:disabled {
     box-shadow: 0 10px 30px rgba(31, 45, 61, 0.18);
 }
 
-.player img {
+.disc-button {
+    position: relative;
     width: 92px;
     height: 92px;
-    border-radius: 6px;
+    flex: 0 0 92px;
+    padding: 0;
+    border-radius: 50%;
+    background: #111827;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(31, 45, 61, 0.22);
+}
+
+.disc-cover {
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
     object-fit: cover;
+    display: block;
+}
+
+.disc-button.playing .disc-cover {
+    animation: disc-spin 8s linear infinite;
+}
+
+.disc-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.82);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 2px 10px rgba(31, 45, 61, 0.22);
+}
+
+.disc-center .play-icon {
+    width: 0;
+    height: 0;
+    margin-left: 3px;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-left: 12px solid #2c3e50;
+}
+
+.disc-center .pause-icon {
+    width: 12px;
+    height: 16px;
+    border-left: 4px solid #2c3e50;
+    border-right: 4px solid #2c3e50;
+}
+
+@keyframes disc-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .player-info {
@@ -1209,7 +1307,7 @@ audio {
     opacity: 1;
 }
 
-.play-icon {
+.song-item > button .play-icon {
     width: 0;
     height: 0;
     border-top: 6px solid transparent;
@@ -1315,9 +1413,33 @@ audio {
         padding: 12px;
     }
 
-    .player img {
+    .disc-button {
         width: 64px;
         height: 64px;
+        flex-basis: 64px;
+    }
+
+    .disc-cover {
+        width: 64px;
+        height: 64px;
+    }
+
+    .disc-center {
+        width: 28px;
+        height: 28px;
+    }
+
+    .disc-center .play-icon {
+        border-top-width: 7px;
+        border-bottom-width: 7px;
+        border-left-width: 10px;
+    }
+
+    .disc-center .pause-icon {
+        width: 10px;
+        height: 14px;
+        border-left-width: 3px;
+        border-right-width: 3px;
     }
 
     .player-info {
