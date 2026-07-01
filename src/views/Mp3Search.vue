@@ -39,7 +39,7 @@
                 :disabled="loading || verifying"
                 @click="verifySource"
             >
-                {{ verifying ? '验证中...' : '在本页完成来源站验证' }}
+                {{ verifying ? '验证中...' : '点击验证' }}
             </button>
         </div>
 
@@ -97,15 +97,22 @@
             <div class="lyrics-title">歌词</div>
             <div v-if="lyricsLoading" class="lyrics-state">歌词加载中...</div>
             <div v-else-if="!lyrics.length" class="lyrics-state">{{ lyricsMessage || '暂无歌词' }}</div>
-            <div v-else ref="lyricsList" class="lyrics-list">
-                <div
-                    v-for="(line, index) in lyrics"
-                    :key="`${line.time}-${index}`"
-                    :class="['lyric-line', { active: index === activeLyricIndex }]"
-                >
-                    {{ line.text }}
+            <template v-else>
+                <div ref="lyricsList" class="lyrics-list" :style="{ height: `${lyricsListHeight}px` }">
+                    <div
+                        v-for="(line, index) in lyrics"
+                        :key="`${line.time}-${index}`"
+                        :class="['lyric-line', { active: index === activeLyricIndex }]"
+                    >
+                        {{ line.text }}
+                    </div>
                 </div>
-            </div>
+                <div
+                    class="lyrics-resize-handle"
+                    title="拖动调整歌词高度"
+                    @pointerdown="startLyricsResize"
+                ></div>
+            </template>
         </div>
 
         <div class="result-header">
@@ -213,6 +220,10 @@ export default {
             lyricsLoading: false,
             lyricsMessage: '',
             activeLyricIndex: -1,
+            lyricsListHeight: 220,
+            lyricsResizeStartY: 0,
+            lyricsResizeStartHeight: 220,
+            isResizingLyrics: false,
             sequenceEnabled: false,
             singleLoopEnabled: false,
             currentPage: 1,
@@ -242,6 +253,7 @@ export default {
     },
     beforeUnmount() {
         this.scrollContainer?.removeEventListener('scroll', this.handlePageScroll)
+        this.stopLyricsResize()
         this.resetPageTitle()
     },
     watch: {
@@ -807,6 +819,35 @@ export default {
             this.currentTitleLyric = ''
             document.title = this.originalTitle || '懒猴工具站-免费便捷在线工具站'
         },
+        startLyricsResize(event) {
+            this.isResizingLyrics = true
+            this.lyricsResizeStartY = event.clientY
+            this.lyricsResizeStartHeight = this.lyricsListHeight
+            document.body.style.cursor = 'ns-resize'
+            document.body.style.userSelect = 'none'
+            window.addEventListener('pointermove', this.handleLyricsResize)
+            window.addEventListener('pointerup', this.stopLyricsResize)
+            window.addEventListener('pointercancel', this.stopLyricsResize)
+            event.preventDefault()
+        },
+        handleLyricsResize(event) {
+            if (!this.isResizingLyrics) return
+
+            const minHeight = 120
+            const maxHeight = Math.min(520, Math.max(220, window.innerHeight - 260))
+            const nextHeight = this.lyricsResizeStartHeight + event.clientY - this.lyricsResizeStartY
+            this.lyricsListHeight = Math.min(Math.max(nextHeight, minHeight), maxHeight)
+        },
+        stopLyricsResize() {
+            if (!this.isResizingLyrics) return
+
+            this.isResizingLyrics = false
+            document.body.style.cursor = ''
+            document.body.style.userSelect = ''
+            window.removeEventListener('pointermove', this.handleLyricsResize)
+            window.removeEventListener('pointerup', this.stopLyricsResize)
+            window.removeEventListener('pointercancel', this.stopLyricsResize)
+        },
         scrollActiveLyric(behavior = 'smooth') {
             this.$nextTick(() => {
                 const list = this.$refs.lyricsList
@@ -1162,7 +1203,7 @@ audio {
 .lyrics-title {
     color: #0065a0;
     font-size: 14px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .lyrics-state {
@@ -1171,8 +1212,31 @@ audio {
     text-align: center;
 }
 
+.lyrics-resize-handle {
+    position: relative;
+    height: 12px;
+    margin-top: 4px;
+    cursor: ns-resize;
+    touch-action: none;
+}
+
+.lyrics-resize-handle::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    width: 56px;
+    height: 3px;
+    border-radius: 999px;
+    background: #c8d2dc;
+    transform: translateX(-50%);
+}
+
+.lyrics-resize-handle:hover::before {
+    background: #0065a0;
+}
+
 .lyrics-list {
-    max-height: 220px;
     overflow-y: auto;
     padding: 8px 0;
     scroll-behavior: smooth;
@@ -1283,8 +1347,12 @@ audio {
     border: none;
     background: transparent;
     cursor: pointer;
+    max-width: 100%;
+    overflow: hidden;
     padding: 0;
     text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .singer-btn:hover {
@@ -1517,9 +1585,6 @@ audio {
         height: 54px;
     }
 
-    .lyrics-list {
-        max-height: 180px;
-    }
 }
 
 @media (max-width: 420px) {
