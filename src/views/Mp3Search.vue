@@ -44,11 +44,26 @@
         <div v-if="currentSong" class="player">
             <img v-if="currentSong.pic" :src="currentSong.pic" :alt="currentSong.title">
             <div class="player-info">
-                <div class="playing-label">正在播放</div>
+                <div class="player-header">
+                    <div class="playing-label">正在播放</div>
+                    <button
+                        type="button"
+                        class="switch-btn loop-btn"
+                        :class="{ active: singleLoopEnabled }"
+                        :aria-pressed="singleLoopEnabled ? 'true' : 'false'"
+                        @click="toggleSingleLoop"
+                    >
+                        <span>单曲循环</span>
+                        <span class="switch-track">
+                            <span class="switch-thumb"></span>
+                        </span>
+                    </button>
+                </div>
                 <h2>{{ currentSong.title }}</h2>
                 <audio
                     ref="audioPlayer"
                     :src="currentSong.audioUrl"
+                    :loop="singleLoopEnabled"
                     controls
                     autoplay
                     @timeupdate="updateLyricIndex"
@@ -78,13 +93,17 @@
             <h2>{{ hasSearched ? '搜索结果' : '热门推荐' }}</h2>
             <div class="result-actions">
                 <button
-                    class="plain-btn sequence-btn"
+                    class="switch-btn sequence-btn"
                     type="button"
                     :class="{ active: sequenceEnabled }"
                     :disabled="!results.length"
-                    @click="sequenceEnabled = !sequenceEnabled"
+                    :aria-pressed="sequenceEnabled ? 'true' : 'false'"
+                    @click="toggleSequencePlay"
                 >
-                    顺序播放：{{ sequenceEnabled ? '开' : '关' }}
+                    <span>顺序播放</span>
+                    <span class="switch-track">
+                        <span class="switch-thumb"></span>
+                    </span>
                 </button>
                 <button class="plain-btn" type="button" :disabled="loading" @click="loadHomeSongs">
                     换一批推荐
@@ -169,6 +188,7 @@ export default {
             lyricsMessage: '',
             activeLyricIndex: -1,
             sequenceEnabled: false,
+            singleLoopEnabled: false,
             currentPage: 1,
             nextPageUrl: '',
             hasMoreResults: false,
@@ -234,6 +254,18 @@ export default {
 
             this.keyword = keyword
             await this.searchMusic()
+        },
+        toggleSingleLoop() {
+            this.singleLoopEnabled = !this.singleLoopEnabled
+            if (this.singleLoopEnabled) {
+                this.sequenceEnabled = false
+            }
+        },
+        toggleSequencePlay() {
+            this.sequenceEnabled = !this.sequenceEnabled
+            if (this.sequenceEnabled) {
+                this.singleLoopEnabled = false
+            }
         },
         resetPagination() {
             this.currentPage = 1
@@ -379,6 +411,10 @@ export default {
         },
         async handleSongEnded() {
             this.activeLyricIndex = -1
+            if (this.singleLoopEnabled) {
+                this.syncLyricTitle()
+                return
+            }
             if (!this.sequenceEnabled) {
                 this.resetPageTitle()
                 return
@@ -826,6 +862,7 @@ export default {
 
 .source-link,
 .plain-btn,
+.switch-btn,
 .search-box button,
 .song-item > button {
     border: none;
@@ -924,10 +961,68 @@ button:disabled {
     min-width: 0;
 }
 
+.player-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
 .playing-label {
     color: #0065a0;
     font-size: 13px;
-    margin-bottom: 6px;
+}
+
+.switch-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    color: #23627a;
+    font-size: 13px;
+    padding: 4px 0;
+}
+
+.switch-btn.active {
+    color: #1f7a5b;
+    font-weight: 600;
+}
+
+.switch-track {
+    display: inline-flex;
+    align-items: center;
+    width: 38px;
+    height: 22px;
+    border-radius: 999px;
+    background: #c8d2dc;
+    padding: 2px;
+    transition: background-color 0.2s;
+}
+
+.switch-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(31, 45, 61, 0.24);
+    transition: transform 0.2s;
+}
+
+.switch-btn.active .switch-track {
+    background: #1f7a5b;
+}
+
+.switch-btn.active .switch-thumb {
+    transform: translateX(16px);
+}
+
+.switch-btn:disabled {
+    cursor: not-allowed;
+}
+
+.switch-btn:disabled .switch-track {
+    opacity: 0.55;
 }
 
 .player h2 {
@@ -1011,14 +1106,8 @@ audio {
     padding: 8px 10px;
 }
 
-.plain-btn:hover,
-.sequence-btn.active {
+.plain-btn:hover {
     background: #eaf4fb;
-}
-
-.sequence-btn.active {
-    color: #1f7a5b;
-    font-weight: 600;
 }
 
 .song-list {
@@ -1146,6 +1235,10 @@ audio {
     .player {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .player-info {
+        width: 100%;
     }
 
     .search-box {
