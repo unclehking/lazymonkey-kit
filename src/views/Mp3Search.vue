@@ -3,9 +3,11 @@
         <div class="toolbar">
             <div>
                 <h1>听歌</h1>
-                <p>来源：好听音乐网 thttt.com</p>
+                <p>
+                    来源：好听音乐网
+                    <a class="source-inline-link" href="https://www.thttt.com/" target="_blank" rel="noopener">thttt.com</a>
+                </p>
             </div>
-            <a class="source-link" href="https://www.thttt.com/" target="_blank" rel="noopener">打开来源站</a>
         </div>
 
         <form class="search-box" @submit.prevent="searchMusic">
@@ -24,7 +26,7 @@
                 :disabled="loading || randomLoading"
                 @click="randomListen"
             >
-                {{ randomLoading ? '随机中...' : '随机听歌' }}
+                {{ randomLoading ? '随机中...' : '随机' }}
             </button>
         </form>
 
@@ -906,7 +908,6 @@ export default {
     color: #77808a;
 }
 
-.source-link,
 .plain-btn,
 .switch-btn,
 .search-box button,
@@ -917,11 +918,14 @@ export default {
     transition: opacity 0.2s, background-color 0.2s;
 }
 
-.source-link {
-    color: #fff;
-    background: #2c3e50;
-    padding: 10px 14px;
+.source-inline-link {
+    color: #0065a0;
+    font-weight: 600;
     text-decoration: none;
+}
+
+.source-inline-link:hover {
+    text-decoration: underline;
 }
 
 .search-box {
@@ -1086,11 +1090,13 @@ button:disabled {
 .switch-btn {
     display: inline-flex;
     align-items: center;
+    flex: 0 0 auto;
     gap: 8px;
     background: transparent;
     color: #23627a;
     font-size: 13px;
     padding: 4px 0;
+    white-space: nowrap;
 }
 
 .switch-btn.active {
@@ -1101,6 +1107,7 @@ button:disabled {
 .switch-track {
     display: inline-flex;
     align-items: center;
+    flex: 0 0 auto;
     width: 38px;
     height: 22px;
     border-radius: 999px;
@@ -1135,6 +1142,7 @@ button:disabled {
 }
 
 .player h2 {
+    flex: 1 1 auto;
     font-size: 18px;
     min-width: 0;
     overflow: hidden;
@@ -1405,9 +1413,10 @@ audio {
 
     .player {
         align-items: center;
-        right: 12px;
-        bottom: 10px;
-        left: 12px;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100vw;
         max-width: none;
         gap: 12px;
         padding: 12px;
@@ -1447,21 +1456,52 @@ audio {
     }
 
     .search-box {
-        flex-direction: column;
+        flex-direction: row;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    .search-box input {
+        flex: 1 1 auto;
+        min-width: 0;
+        height: 42px;
+        padding: 0 10px;
     }
 
     .search-box button {
+        flex: 0 0 auto;
         height: 42px;
+        padding: 0 12px;
     }
 
     .result-header {
-        align-items: flex-start;
-        flex-direction: column;
+        align-items: center;
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    .result-header h2 {
+        flex: 0 0 auto;
+        font-size: 18px;
+        white-space: nowrap;
     }
 
     .result-actions {
-        justify-content: flex-start;
-        width: 100%;
+        flex: 0 0 auto;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        gap: 6px;
+        width: auto;
+    }
+
+    .result-actions .switch-btn,
+    .result-actions .plain-btn {
+        font-size: 12px;
+    }
+
+    .result-actions .plain-btn {
+        padding: 6px 4px;
+        white-space: nowrap;
     }
 
     .song-list {
