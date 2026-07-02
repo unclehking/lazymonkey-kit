@@ -68,16 +68,41 @@
                 </div>
                 <audio
                     ref="audioPlayer"
+                    class="native-audio"
                     :src="currentSong.audioUrl"
                     :loop="playMode === 'loop'"
-                    controls
                     autoplay
-                    @timeupdate="updateLyricIndex"
-                    @seeked="updateLyricIndex"
+                    @durationchange="updateAudioProgress"
+                    @loadedmetadata="updateAudioProgress"
+                    @timeupdate="handleAudioTimeUpdate"
+                    @seeked="handleAudioTimeUpdate"
                     @play="handleAudioPlay"
                     @pause="handleAudioPause"
                     @ended="handleSongEnded"
                 ></audio>
+                <div class="custom-player-controls">
+                    <button type="button" class="track-nav-btn" title="上一曲" @click="playPreviousSong">
+                        <span class="prev-track-icon" aria-hidden="true"></span>
+                    </button>
+                    <div class="progress-wrap">
+                        <input
+                            class="progress-slider"
+                            type="range"
+                            min="0"
+                            :max="audioDuration || 0"
+                            step="0.1"
+                            :value="audioCurrentTime"
+                            @input="seekAudio"
+                        >
+                        <div class="time-row">
+                            <span>{{ formatAudioTime(audioCurrentTime) }}</span>
+                            <span>{{ formatAudioTime(audioDuration) }}</span>
+                        </div>
+                    </div>
+                    <button type="button" class="track-nav-btn" title="下一曲" @click="playNextSong">
+                        <span class="next-track-icon" aria-hidden="true"></span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -187,6 +212,8 @@ export default {
             results: [],
             currentSong: null,
             isAudioPlaying: false,
+            audioCurrentTime: 0,
+            audioDuration: 0,
             loading: false,
             message: '',
             messageType: 'info',
@@ -303,6 +330,34 @@ export default {
         },
         handleAudioPause() {
             this.isAudioPlaying = false
+        },
+        updateAudioProgress() {
+            const audio = this.$refs.audioPlayer
+            if (!audio) return
+
+            this.audioCurrentTime = Number.isFinite(audio.currentTime) ? audio.currentTime : 0
+            this.audioDuration = Number.isFinite(audio.duration) ? audio.duration : 0
+        },
+        handleAudioTimeUpdate() {
+            this.updateAudioProgress()
+            this.updateLyricIndex()
+        },
+        seekAudio(event) {
+            const audio = this.$refs.audioPlayer
+            if (!audio) return
+
+            const nextTime = Number(event.target.value)
+            if (!Number.isFinite(nextTime)) return
+
+            audio.currentTime = nextTime
+            this.audioCurrentTime = nextTime
+            this.updateLyricIndex()
+        },
+        formatAudioTime(value) {
+            const totalSeconds = Math.max(0, Math.floor(Number(value) || 0))
+            const minutes = Math.floor(totalSeconds / 60)
+            const seconds = totalSeconds % 60
+            return `${minutes}:${String(seconds).padStart(2, '0')}`
         },
         resetPagination() {
             this.currentPage = 1
@@ -456,6 +511,22 @@ export default {
             }
 
             await this.playSong(nextSong)
+        },
+        async playPreviousSong() {
+            const playableSongs = this.results.filter((song) => song.sourceId)
+            if (!playableSongs.length) {
+                this.showToast('当前列表没有可播放的歌曲')
+                return
+            }
+
+            const currentIndex = playableSongs.findIndex((song) => this.isCurrentSong(song))
+            const previousSong = playableSongs[currentIndex - 1]
+            if (!previousSong) {
+                this.showToast('已经是第一首了')
+                return
+            }
+
+            await this.playSong(previousSong)
         },
         async verifySource() {
             if (!this.verifyToken) {
@@ -627,6 +698,8 @@ export default {
                 }
 
                 this.isAudioPlaying = false
+                this.audioCurrentTime = 0
+                this.audioDuration = 0
                 this.currentSong = {
                     sourceId: song.sourceId,
                     title: data.title || `${song.singer} - ${song.title}`,
@@ -1104,8 +1177,106 @@ button:disabled {
     white-space: nowrap;
 }
 
-audio {
+.native-audio {
+    display: none;
+}
+
+.custom-player-controls {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
+    align-items: center;
+    gap: 10px;
+}
+
+.track-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: #eef7fb;
+    color: #0065a0;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.track-nav-btn:hover {
+    background: #d9edf6;
+    color: #2c3e50;
+}
+
+.prev-track-icon,
+.next-track-icon {
+    position: relative;
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+}
+
+.prev-track-icon::before,
+.prev-track-icon::after,
+.next-track-icon::before,
+.next-track-icon::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+}
+
+.prev-track-icon::before {
+    left: 2px;
+    width: 2px;
+    height: 10px;
+    border-radius: 2px;
+    background: currentColor;
+}
+
+.prev-track-icon::after {
+    left: 5px;
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-right: 8px solid currentColor;
+}
+
+.next-track-icon::before {
+    right: 5px;
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 8px solid currentColor;
+}
+
+.next-track-icon::after {
+    right: 2px;
+    width: 2px;
+    height: 10px;
+    border-radius: 2px;
+    background: currentColor;
+}
+
+.progress-wrap {
+    min-width: 0;
+}
+
+.progress-slider {
     width: 100%;
+    height: 20px;
+    margin: 0;
+    accent-color: #0065a0;
+    cursor: pointer;
+}
+
+.time-row {
+    display: flex;
+    justify-content: space-between;
+    color: #7b8590;
+    font-size: 12px;
+    line-height: 1;
+    margin-top: 2px;
 }
 
 .lyrics-panel {
@@ -1506,6 +1677,16 @@ audio {
 
     .player h2 {
         font-size: 16px;
+    }
+
+    .custom-player-controls {
+        grid-template-columns: 30px minmax(0, 1fr) 30px;
+        gap: 8px;
+    }
+
+    .track-nav-btn {
+        width: 30px;
+        height: 30px;
     }
 }
 </style>
