@@ -357,8 +357,8 @@ export default {
 
             try {
                 const pipWindow = await window.documentPictureInPicture.requestWindow({
-                    width: 420,
-                    height: 220
+                    width: 465,
+                    height: 173
                 })
                 this.pipWindow = pipWindow
                 this.isPlayerPip = true
