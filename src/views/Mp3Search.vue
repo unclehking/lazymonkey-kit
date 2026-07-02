@@ -35,7 +35,12 @@
             </button>
         </div>
 
-        <div v-if="currentSong" class="player">
+        <div v-if="currentSong" ref="playerHost" class="player-host">
+        <div
+            ref="player"
+            class="player"
+            :class="{ 'pip-player': isPlayerPip }"
+        >
             <button
                 type="button"
                 class="disc-button"
@@ -64,6 +69,15 @@
                         @click="togglePlayMode"
                     >
                         {{ playModeLabel }}
+                    </button>
+                    <button
+                        v-if="!isPlayerPip"
+                        type="button"
+                        class="pip-btn"
+                        title="打开画中画"
+                        @click="togglePlayerPip"
+                    >
+                        画中画
                     </button>
                 </div>
                 <audio
@@ -104,6 +118,7 @@
                     </button>
                 </div>
             </div>
+        </div>
         </div>
 
         <div v-if="currentSong" class="lyrics-panel">
@@ -230,6 +245,8 @@ export default {
             lyricsResizeStartY: 0,
             lyricsResizeStartHeight: 220,
             isResizingLyrics: false,
+            pipWindow: null,
+            isPlayerPip: false,
             playMode: 'sequence',
             currentPage: 1,
             nextPageUrl: '',
@@ -250,6 +267,7 @@ export default {
             this.scrollContainer = this.$el.closest('.content') || window
             this.scrollContainer.addEventListener('scroll', this.handlePageScroll, { passive: true })
         })
+        window.addEventListener('keydown', this.handlePlayerKeydown)
         if (this.keyword) {
             this.searchMusic()
         } else {
@@ -258,6 +276,8 @@ export default {
     },
     beforeUnmount() {
         this.scrollContainer?.removeEventListener('scroll', this.handlePageScroll)
+        window.removeEventListener('keydown', this.handlePlayerKeydown)
+        this.closePlayerPip()
         this.stopLyricsResize()
         this.resetPageTitle()
     },
@@ -312,6 +332,76 @@ export default {
             const currentIndex = PLAY_MODES.indexOf(this.playMode)
             this.playMode = PLAY_MODES[(currentIndex + 1) % PLAY_MODES.length]
         },
+        async togglePlayerPip() {
+            if (this.isPlayerPip) {
+                this.closePlayerPip()
+                return
+            }
+
+            await this.openPlayerPip()
+        },
+        async openPlayerPip() {
+            if (!this.currentSong || !this.$refs.player) return
+            if (!('documentPictureInPicture' in window)) {
+                this.showToast('当前浏览器不支持画中画')
+                return
+            }
+
+            try {
+                const pipWindow = await window.documentPictureInPicture.requestWindow({
+                    width: 420,
+                    height: 190
+                })
+                this.pipWindow = pipWindow
+                this.isPlayerPip = true
+                this.copyStylesToPipWindow(pipWindow)
+                Object.assign(pipWindow.document.body.style, {
+                    margin: '0',
+                    padding: '12px',
+                    background: '#f5f7fa',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden'
+                })
+                pipWindow.document.body.append(this.$refs.player)
+                pipWindow.addEventListener('pagehide', this.returnPlayerFromPip, { once: true })
+            } catch (error) {
+                if (error.name !== 'NotAllowedError') {
+                    this.showToast('打开画中画失败', 'error')
+                }
+            }
+        },
+        closePlayerPip() {
+            if (this.pipWindow && !this.pipWindow.closed) {
+                this.pipWindow.close()
+            } else {
+                this.returnPlayerFromPip()
+            }
+        },
+        returnPlayerFromPip() {
+            if (this.$refs.playerHost && this.$refs.player && !this.$refs.playerHost.contains(this.$refs.player)) {
+                this.$refs.playerHost.append(this.$refs.player)
+            }
+            this.isPlayerPip = false
+            this.pipWindow = null
+        },
+        copyStylesToPipWindow(pipWindow) {
+            const pipDocument = pipWindow.document
+            Array.from(document.styleSheets).forEach((styleSheet) => {
+                try {
+                    const cssRules = Array.from(styleSheet.cssRules).map((rule) => rule.cssText).join('')
+                    const style = pipDocument.createElement('style')
+                    style.textContent = cssRules
+                    pipDocument.head.append(style)
+                } catch (error) {
+                    if (styleSheet.href) {
+                        const link = pipDocument.createElement('link')
+                        link.rel = 'stylesheet'
+                        link.href = styleSheet.href
+                        pipDocument.head.append(link)
+                    }
+                }
+            })
+        },
         toggleAudioPlayback() {
             const audio = this.$refs.audioPlayer
             if (!audio) return
@@ -330,6 +420,22 @@ export default {
         },
         handleAudioPause() {
             this.isAudioPlaying = false
+        },
+        handlePlayerKeydown(event) {
+            if (!this.currentSong) return
+
+            const target = event.target
+            const tagName = target?.tagName?.toLowerCase()
+            const isEditing = target?.isContentEditable || ['input', 'textarea', 'select'].includes(tagName)
+            if (isEditing || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return
+
+            if (event.key === 'ArrowRight') {
+                event.preventDefault()
+                this.playNextSong()
+            } else if (event.key === 'ArrowLeft') {
+                event.preventDefault()
+                this.playPreviousSong()
+            }
         },
         updateAudioProgress() {
             const audio = this.$refs.audioPlayer
@@ -1054,6 +1160,10 @@ button:disabled {
     opacity: 0.9;
 }
 
+.player-host {
+    display: contents;
+}
+
 .player {
     display: flex;
     align-items: center;
@@ -1070,6 +1180,19 @@ button:disabled {
     border: 1px solid #2c3e50;
     border-radius: 8px 8px 0 0;
     box-shadow: 0 10px 30px rgba(31, 45, 61, 0.18);
+}
+
+.player.pip-player {
+    position: static;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    box-sizing: border-box;
+    border-radius: 8px;
+    box-shadow: none;
 }
 
 .disc-button {
@@ -1166,6 +1289,24 @@ button:disabled {
 
 .mode-btn:hover {
     background: #d9edf6;
+}
+
+.pip-btn {
+    flex: 0 0 auto;
+    border: none;
+    border-radius: 999px;
+    background: #2c3e50;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+}
+
+.pip-btn:hover {
+    opacity: 0.9;
 }
 
 .player h2 {
