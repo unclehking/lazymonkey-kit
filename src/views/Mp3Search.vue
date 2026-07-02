@@ -20,14 +20,6 @@
             <button type="submit" :disabled="loading || !keyword">
                 {{ loading ? '搜索中...' : '搜索' }}
             </button>
-            <button
-                type="button"
-                class="random-btn"
-                :disabled="loading || randomLoading"
-                @click="randomListen"
-            >
-                {{ randomLoading ? '随机中...' : '随机' }}
-            </button>
         </form>
 
         <div v-if="message" class="message" :class="{ error: messageType === 'error' }">
@@ -67,21 +59,17 @@
                     <h2>{{ currentSong.title }}</h2>
                     <button
                         type="button"
-                        class="switch-btn loop-btn"
-                        :class="{ active: singleLoopEnabled }"
-                        :aria-pressed="singleLoopEnabled ? 'true' : 'false'"
-                        @click="toggleSingleLoop"
+                        class="mode-btn"
+                        :title="`当前模式：${playModeLabel}，点击切换`"
+                        @click="togglePlayMode"
                     >
-                        <span>单曲循环</span>
-                        <span class="switch-track">
-                            <span class="switch-thumb"></span>
-                        </span>
+                        {{ playModeLabel }}
                     </button>
                 </div>
                 <audio
                     ref="audioPlayer"
                     :src="currentSong.audioUrl"
-                    :loop="singleLoopEnabled"
+                    :loop="playMode === 'loop'"
                     controls
                     autoplay
                     @timeupdate="updateLyricIndex"
@@ -118,19 +106,6 @@
         <div class="result-header">
             <h2>{{ hasSearched ? '搜索结果' : '热门推荐' }}</h2>
             <div class="result-actions">
-                <button
-                    class="switch-btn sequence-btn"
-                    type="button"
-                    :class="{ active: sequenceEnabled }"
-                    :disabled="!results.length"
-                    :aria-pressed="sequenceEnabled ? 'true' : 'false'"
-                    @click="toggleSequencePlay"
-                >
-                    <span>顺序播放</span>
-                    <span class="switch-track">
-                        <span class="switch-thumb"></span>
-                    </span>
-                </button>
                 <button class="plain-btn" type="button" :disabled="loading" @click="loadHomeSongs">
                     换一批推荐
                 </button>
@@ -193,9 +168,15 @@
 const SOURCE_PROXY = '/thttt'
 const SOURCE_HOST = 'https://www.thttt.com'
 const REQUEST_TIMEOUT = 12000
+const PLAY_MODES = ['sequence', 'random', 'loop']
+const PLAY_MODE_LABELS = {
+    sequence: '顺序播放',
+    random: '随机播放',
+    loop: '单曲循环'
+}
 const CACHE_KEYS = {
     keyword: 'lazy-monkey-mp3-keyword',
-    sequenceEnabled: 'lazy-monkey-mp3-sequence-enabled'
+    playMode: 'lazy-monkey-mp3-play-mode'
 }
 
 export default {
@@ -213,8 +194,6 @@ export default {
             verifyToken: '',
             verifying: false,
             lastRequest: null,
-            pendingRandom: false,
-            randomLoading: false,
             hasSearched: false,
             lyrics: [],
             lyricsLoading: false,
@@ -224,8 +203,7 @@ export default {
             lyricsResizeStartY: 0,
             lyricsResizeStartHeight: 220,
             isResizingLyrics: false,
-            sequenceEnabled: false,
-            singleLoopEnabled: false,
+            playMode: 'sequence',
             currentPage: 1,
             nextPageUrl: '',
             hasMoreResults: false,
@@ -260,14 +238,24 @@ export default {
         keyword(value) {
             window.localStorage.setItem(CACHE_KEYS.keyword, value)
         },
-        sequenceEnabled(value) {
-            window.localStorage.setItem(CACHE_KEYS.sequenceEnabled, value ? '1' : '0')
+        playMode(value) {
+            window.localStorage.setItem(CACHE_KEYS.playMode, value)
+        }
+    },
+    computed: {
+        playModeLabel() {
+            return PLAY_MODE_LABELS[this.playMode] || PLAY_MODE_LABELS.sequence
         }
     },
     methods: {
         restoreCachedSettings() {
             this.keyword = window.localStorage.getItem(CACHE_KEYS.keyword) || ''
-            this.sequenceEnabled = window.localStorage.getItem(CACHE_KEYS.sequenceEnabled) === '1'
+            const cachedMode = window.localStorage.getItem(CACHE_KEYS.playMode)
+            if (PLAY_MODES.includes(cachedMode)) {
+                this.playMode = cachedMode
+                return
+            }
+            this.playMode = 'sequence'
         },
         async loadHomeSongs() {
             this.hasSearched = false
@@ -293,17 +281,9 @@ export default {
             this.keyword = keyword
             await this.searchMusic()
         },
-        toggleSingleLoop() {
-            this.singleLoopEnabled = !this.singleLoopEnabled
-            if (this.singleLoopEnabled) {
-                this.sequenceEnabled = false
-            }
-        },
-        toggleSequencePlay() {
-            this.sequenceEnabled = !this.sequenceEnabled
-            if (this.sequenceEnabled) {
-                this.singleLoopEnabled = false
-            }
+        togglePlayMode() {
+            const currentIndex = PLAY_MODES.indexOf(this.playMode)
+            this.playMode = PLAY_MODES[(currentIndex + 1) % PLAY_MODES.length]
         },
         toggleAudioPlayback() {
             const audio = this.$refs.audioPlayer
@@ -433,29 +413,6 @@ export default {
                 this.loadMoreSongs()
             }
         },
-        async randomListen() {
-            this.pendingRandom = true
-            this.randomLoading = true
-            this.message = ''
-
-            try {
-                let songs = this.results
-                if (!songs.length || this.needVerify) {
-                    this.hasSearched = false
-                    songs = await this.fetchSongList(`${SOURCE_PROXY}/`, '随机听歌失败，请稍后重试。') || []
-                }
-
-                if (this.needVerify) {
-                    this.showMessage('来源站需要安全验证，验证完成后会继续随机播放。', 'error')
-                    return
-                }
-
-                this.pendingRandom = false
-                await this.playRandomSong(songs.length ? songs : this.results)
-            } finally {
-                this.randomLoading = false
-            }
-        },
         async playRandomSong(songs = this.results) {
             const playableSongs = songs.filter((song) => song.sourceId)
             if (!playableSongs.length) {
@@ -463,18 +420,21 @@ export default {
                 return
             }
 
-            const randomIndex = Math.floor(Math.random() * playableSongs.length)
-            await this.playSong(playableSongs[randomIndex])
+            const candidateSongs = playableSongs.length > 1
+                ? playableSongs.filter((song) => !this.isCurrentSong(song))
+                : playableSongs
+            const randomIndex = Math.floor(Math.random() * candidateSongs.length)
+            await this.playSong(candidateSongs[randomIndex])
         },
         async handleSongEnded() {
             this.isAudioPlaying = false
             this.activeLyricIndex = -1
-            if (this.singleLoopEnabled) {
+            if (this.playMode === 'loop') {
                 this.syncLyricTitle()
                 return
             }
-            if (!this.sequenceEnabled) {
-                this.resetPageTitle()
+            if (this.playMode === 'random') {
+                await this.playRandomSong()
                 return
             }
 
@@ -490,8 +450,8 @@ export default {
             const currentIndex = playableSongs.findIndex((song) => this.isCurrentSong(song))
             const nextSong = playableSongs[currentIndex + 1]
             if (!nextSong) {
-                this.sequenceEnabled = false
                 this.showMessage('当前列表已播放完毕。')
+                this.resetPageTitle()
                 return
             }
 
@@ -537,16 +497,10 @@ export default {
                 this.needVerify = false
                 this.verifyToken = ''
                 this.showToast('验证完成，正在重新加载', 'success')
-                let songs = []
                 if (this.lastRequest) {
-                    songs = await this.fetchSongList(this.lastRequest.url, this.lastRequest.errorText) || []
+                    await this.fetchSongList(this.lastRequest.url, this.lastRequest.errorText)
                 } else {
-                    songs = await this.loadHomeSongs() || []
-                }
-
-                if (this.pendingRandom && !this.needVerify) {
-                    this.pendingRandom = false
-                    await this.playRandomSong(songs.length ? songs : this.results)
+                    await this.loadHomeSongs()
                 }
             } catch (error) {
                 const reason = error.name === 'AbortError' ? '请求超时' : error.message
@@ -950,7 +904,6 @@ export default {
 }
 
 .plain-btn,
-.switch-btn,
 .search-box button,
 .song-item > button {
     border: none;
@@ -991,10 +944,6 @@ export default {
     background: #0065a0;
     color: #fff;
     padding: 0 22px;
-}
-
-.search-box .random-btn {
-    background: #1f7a5b;
 }
 
 button:disabled {
@@ -1128,58 +1077,22 @@ button:disabled {
     margin-bottom: 10px;
 }
 
-.switch-btn {
-    display: inline-flex;
-    align-items: center;
+.mode-btn {
     flex: 0 0 auto;
-    gap: 8px;
-    background: transparent;
-    color: #23627a;
-    font-size: 13px;
-    padding: 4px 0;
-    white-space: nowrap;
-}
-
-.switch-btn.active {
-    color: #1f7a5b;
-    font-weight: 600;
-}
-
-.switch-track {
-    display: inline-flex;
-    align-items: center;
-    flex: 0 0 auto;
-    width: 38px;
-    height: 22px;
+    border: none;
     border-radius: 999px;
-    background: #c8d2dc;
-    padding: 2px;
-    transition: background-color 0.2s;
+    background: #eef7fb;
+    color: #0065a0;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    white-space: nowrap;
+    transition: background-color 0.2s, color 0.2s;
 }
 
-.switch-thumb {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 1px 3px rgba(31, 45, 61, 0.24);
-    transition: transform 0.2s;
-}
-
-.switch-btn.active .switch-track {
-    background: #1f7a5b;
-}
-
-.switch-btn.active .switch-thumb {
-    transform: translateX(16px);
-}
-
-.switch-btn:disabled {
-    cursor: not-allowed;
-}
-
-.switch-btn:disabled .switch-track {
-    opacity: 0.55;
+.mode-btn:hover {
+    background: #d9edf6;
 }
 
 .player h2 {
@@ -1562,7 +1475,6 @@ audio {
         width: auto;
     }
 
-    .result-actions .switch-btn,
     .result-actions .plain-btn {
         font-size: 12px;
     }
