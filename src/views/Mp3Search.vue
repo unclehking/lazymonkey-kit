@@ -41,6 +41,7 @@
             class="player"
             :class="{ 'pip-player': isPlayerPip }"
         >
+            <div class="player-main">
             <button
                 type="button"
                 class="disc-button"
@@ -117,6 +118,10 @@
                         <span class="next-track-icon" aria-hidden="true"></span>
                     </button>
                 </div>
+            </div>
+            </div>
+            <div v-if="isPlayerPip" class="pip-lyric-line">
+                {{ currentLyricText || '暂无歌词' }}
             </div>
         </div>
         </div>
@@ -292,6 +297,9 @@ export default {
     computed: {
         playModeLabel() {
             return PLAY_MODE_LABELS[this.playMode] || PLAY_MODE_LABELS.sequence
+        },
+        currentLyricText() {
+            return this.lyrics[this.activeLyricIndex]?.text || ''
         }
     },
     methods: {
@@ -350,7 +358,7 @@ export default {
             try {
                 const pipWindow = await window.documentPictureInPicture.requestWindow({
                     width: 420,
-                    height: 190
+                    height: 220
                 })
                 this.pipWindow = pipWindow
                 this.isPlayerPip = true
@@ -1165,9 +1173,6 @@ button:disabled {
 }
 
 .player {
-    display: flex;
-    align-items: center;
-    gap: 18px;
     position: fixed;
     right: 20px;
     bottom: -1px;
@@ -1182,7 +1187,16 @@ button:disabled {
     box-shadow: 0 10px 30px rgba(31, 45, 61, 0.18);
 }
 
+.player-main {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
 .player.pip-player {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
     position: static;
     left: auto;
     right: auto;
@@ -1193,6 +1207,16 @@ button:disabled {
     box-sizing: border-box;
     border-radius: 8px;
     box-shadow: none;
+}
+
+.player.pip-player .player-main {
+    width: 100%;
+}
+
+.player.pip-player .player-info {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .disc-button {
@@ -1418,6 +1442,24 @@ button:disabled {
     font-size: 12px;
     line-height: 1;
     margin-top: 2px;
+}
+
+.pip-lyric-line {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 0;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: #eef7fb;
+    color: #0065a0;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .lyrics-panel {
@@ -1705,14 +1747,17 @@ button:disabled {
     }
 
     .player {
-        align-items: center;
         right: 0;
         bottom: 0;
         left: 0;
         width: 100vw;
         max-width: none;
-        gap: 12px;
         padding: 12px;
+    }
+
+    .player-main {
+        align-items: center;
+        gap: 12px;
     }
 
     .disc-button {
@@ -1828,6 +1873,10 @@ button:disabled {
     .track-nav-btn {
         width: 30px;
         height: 30px;
+    }
+
+    .pip-btn {
+        display: none;
     }
 }
 </style>
