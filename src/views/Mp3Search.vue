@@ -22,17 +22,26 @@
             </button>
         </form>
 
-        <div v-if="message" class="message" :class="{ error: messageType === 'error' }">
+        <div v-if="message && !needVerify" class="message" :class="{ error: messageType === 'error' }">
             {{ message }}
-            <button
-                v-if="needVerify"
-                type="button"
-                class="verify-btn"
-                :disabled="loading || verifying"
-                @click="verifySource"
-            >
-                {{ verifying ? '验证中...' : '点击验证' }}
-            </button>
+        </div>
+
+        <div v-if="needVerify" class="verify-dialog" role="dialog" aria-live="polite" aria-label="来源站安全验证">
+            <div class="verify-dialog-title">需要安全验证</div>
+            <div class="verify-dialog-text">来源站需要安全验证，请点击下方按钮在当前代理链路中完成验证。</div>
+            <div class="verify-actions">
+                <button type="button" class="verify-cancel-btn" :disabled="verifying" @click="cancelVerify">
+                    取消
+                </button>
+                <button
+                    type="button"
+                    class="verify-btn"
+                    :disabled="loading || verifying"
+                    @click="verifySource"
+                >
+                    {{ verifying ? '验证中...' : '点击验证' }}
+                </button>
+            </div>
         </div>
 
         <div v-if="currentSong" ref="playerHost" class="player-host">
@@ -512,12 +521,9 @@ export default {
                     this.verifyToken = this.getVerifyToken(html)
                     this.needVerify = Boolean(this.verifyToken)
                     this.hasMoreResults = false
-                    this.showMessage(
-                        this.needVerify
-                            ? '来源站需要安全验证，请点击下方按钮在当前代理链路中完成验证。'
-                            : '来源站需要安全验证，但没有解析到验证令牌，请稍后重试。',
-                        'error'
-                    )
+                    if (!this.needVerify) {
+                        this.showMessage('来源站需要安全验证，但没有解析到验证令牌，请稍后重试。', 'error')
+                    }
                     return null
                 }
 
@@ -694,6 +700,11 @@ export default {
                 window.clearTimeout(timer)
                 this.verifying = false
             }
+        },
+        cancelVerify() {
+            this.needVerify = false
+            this.verifyToken = ''
+            this.message = ''
         },
         parseSongs(html) {
             const document = new DOMParser().parseFromString(html, 'text/html')
@@ -1153,19 +1164,65 @@ button:disabled {
     color: #b23b3b;
 }
 
-.verify-btn {
-    display: block;
+.verify-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 40;
+    width: min(320px, calc(100vw - 32px));
+    padding: 16px;
+    border: 1px solid #ffd5d5;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 12px 34px rgba(31, 45, 61, 0.2);
+    color: #2c3e50;
+    transform: translate(-50%, -50%);
+}
+
+.verify-dialog-title {
+    color: #b23b3b;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.verify-dialog-text {
+    color: #5f6973;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.verify-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
     margin-top: 10px;
+}
+
+.verify-btn,
+.verify-cancel-btn {
     border: none;
     border-radius: 6px;
-    background: #b23b3b;
-    color: #fff;
     cursor: pointer;
     padding: 9px 12px;
 }
 
+.verify-btn {
+    background: #b23b3b;
+    color: #fff;
+}
+
+.verify-cancel-btn {
+    background: #eef2f6;
+    color: #2c3e50;
+}
+
 .verify-btn:hover {
     opacity: 0.9;
+}
+
+.verify-cancel-btn:hover {
+    background: #e0e6ed;
 }
 
 .player-host {
