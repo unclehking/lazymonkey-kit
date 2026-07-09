@@ -2445,6 +2445,60 @@ button:disabled {
 
 }
 
+@media (max-width: 768px) and (max-height: 700px) {
+    .player {
+        padding: 18px 24px 24px;
+    }
+
+    .disc-controls {
+        margin-top: 22px;
+    }
+
+    .disc-button {
+        width: min(70vw, 292px);
+        height: min(70vw, 292px);
+    }
+
+    .mobile-song-meta {
+        margin-top: 20px;
+    }
+
+    .player-info {
+        margin-top: 18px;
+    }
+
+    .time-row {
+        font-size: 15px;
+        margin-top: 6px;
+    }
+
+    .mobile-transport {
+        gap: 36px;
+        margin-top: 18px;
+    }
+
+    .mobile-nav-btn {
+        width: 48px;
+        height: 48px;
+    }
+
+    .mobile-play-btn {
+        width: 68px;
+        height: 68px;
+    }
+
+    .mobile-play-btn .play-icon {
+        border-top-width: 15px;
+        border-bottom-width: 15px;
+        border-left-width: 23px;
+    }
+
+    .mobile-play-btn .pause-icon {
+        width: 18px;
+        height: 28px;
+    }
+}
+
 @media (max-width: 420px) {
     .player-header {
         gap: 8px;
