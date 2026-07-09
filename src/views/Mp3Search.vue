@@ -144,7 +144,7 @@
             </div>
             </div>
             <div class="mobile-song-meta">
-                <div class="mobile-lyrics" :style="mobileLyricsStyle">
+                <div class="mobile-lyrics">
                     <div
                         v-for="line in mobileLyricLines"
                         :key="`${line.index}-${line.time}`"
@@ -366,15 +366,6 @@ export default {
                 ...line,
                 index: startIndex + offset
             }))
-        },
-        mobileLyricsStyle() {
-            const lineHeight = 25
-            const gap = 8
-            const height = this.mobileLyricVisibleCount * lineHeight + (this.mobileLyricVisibleCount - 1) * gap
-
-            return {
-                height: `${height}px`
-            }
         },
         currentSongTitle() {
             const parsed = this.parseTitle(this.currentSong?.title || '')
@@ -1944,6 +1935,7 @@ button:disabled {
         left: 0;
         display: flex;
         flex-direction: column;
+        gap: 20px;
         width: 100vw;
         height: 100vh;
         height: 100dvh;
@@ -2053,9 +2045,11 @@ button:disabled {
     .disc-controls {
         order: 2;
         display: flex;
+        align-items: center;
         justify-content: center;
-        flex: 0 0 auto;
-        margin: clamp(34px, 7vh, 72px) 0 0;
+        flex: 1 1 0;
+        min-height: 150px;
+        margin: 0;
     }
 
     .disc-controls > .track-nav-btn {
@@ -2063,10 +2057,10 @@ button:disabled {
     }
 
     .disc-button {
-        width: min(42vh, 360px);
-        width: min(42dvh, 360px);
-        height: min(42vh, 360px);
-        height: min(42dvh, 360px);
+        width: auto;
+        height: min(100%, 42vh, 360px);
+        height: min(100%, 42dvh, 360px);
+        aspect-ratio: 1;
         flex-basis: auto;
         box-sizing: border-box;
         padding: 10px;
@@ -2126,8 +2120,9 @@ button:disabled {
     .mobile-song-meta {
         order: 3;
         display: block;
-        flex: 0 0 auto;
-        margin-top: clamp(28px, 5vh, 56px);
+        flex: 0 1 auto;
+        min-height: 0;
+        margin-top: 0;
         text-align: center;
     }
 
@@ -2135,6 +2130,8 @@ button:disabled {
         display: grid;
         gap: 8px;
         align-content: center;
+        max-height: 100%;
+        overflow: hidden;
     }
 
     .mobile-lyric-line {
@@ -2159,8 +2156,9 @@ button:disabled {
 
     .player-info {
         order: 4;
+        flex: 0 0 auto;
         width: 100%;
-        margin-top: auto;
+        margin-top: 0;
         padding-bottom: 132px;
     }
 
@@ -2458,22 +2456,20 @@ button:disabled {
     }
 
     .disc-controls {
-        margin-top: 22px;
+        min-height: 120px;
     }
 
     .disc-button {
-        width: min(39vh, 292px);
-        width: min(39dvh, 292px);
-        height: min(39vh, 292px);
-        height: min(39dvh, 292px);
+        height: min(100%, 39vh, 292px);
+        height: min(100%, 39dvh, 292px);
     }
 
     .mobile-song-meta {
-        margin-top: 20px;
+        margin-top: 0;
     }
 
     .player-info {
-        margin-top: 18px;
+        margin-top: 0;
         padding-bottom: 110px;
     }
 
