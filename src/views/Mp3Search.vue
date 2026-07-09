@@ -1948,7 +1948,7 @@ button:disabled {
         height: 100vh;
         height: 100dvh;
         max-width: none;
-        padding: 24px 24px 20px;
+        padding: 24px 24px 30px;
         border: none;
         border-radius: 0;
         color: #fff;
@@ -2063,8 +2063,10 @@ button:disabled {
     }
 
     .disc-button {
-        width: min(78vw, 360px);
-        height: min(78vw, 360px);
+        width: min(42vh, 360px);
+        width: min(42dvh, 360px);
+        height: min(42vh, 360px);
+        height: min(42dvh, 360px);
         flex-basis: auto;
         box-sizing: border-box;
         padding: 10px;
@@ -2159,6 +2161,7 @@ button:disabled {
         order: 4;
         width: 100%;
         margin-top: auto;
+        padding-bottom: 132px;
     }
 
     .player-header {
@@ -2189,7 +2192,11 @@ button:disabled {
         justify-content: center;
         gap: 44px;
         flex: 0 0 auto;
-        margin-top: 28px;
+        position: absolute;
+        right: 0;
+        bottom: 30px;
+        left: 0;
+        margin-top: 0;
     }
 
     .mobile-nav-btn,
@@ -2447,7 +2454,7 @@ button:disabled {
 
 @media (max-width: 768px) and (max-height: 700px) {
     .player {
-        padding: 18px 24px 24px;
+        padding: 18px 24px 30px;
     }
 
     .disc-controls {
@@ -2455,8 +2462,10 @@ button:disabled {
     }
 
     .disc-button {
-        width: min(70vw, 292px);
-        height: min(70vw, 292px);
+        width: min(39vh, 292px);
+        width: min(39dvh, 292px);
+        height: min(39vh, 292px);
+        height: min(39dvh, 292px);
     }
 
     .mobile-song-meta {
@@ -2465,6 +2474,7 @@ button:disabled {
 
     .player-info {
         margin-top: 18px;
+        padding-bottom: 110px;
     }
 
     .time-row {
@@ -2474,7 +2484,6 @@ button:disabled {
 
     .mobile-transport {
         gap: 36px;
-        margin-top: 18px;
     }
 
     .mobile-nav-btn {
