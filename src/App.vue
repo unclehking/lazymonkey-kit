@@ -58,10 +58,6 @@
                     <i class="fas fa-compress"></i>
                     图片压缩
                 </router-link>
-                <router-link to="/color-img" class="menu-item">
-                    <i class="icon image-icon"></i>
-                    纯色图片生成
-                </router-link>
                 <view class="divider"></view>
                 <router-link to="/generate-qrcode" class="menu-item">
                     <i class="icon qrcode-icon"></i>
@@ -102,12 +98,7 @@
                 <view class="divider"></view>
                 <router-link to="/mp3-search" class="menu-item">
                     <i class="fas fa-music"></i>
-                    听歌
-                </router-link>
-                <view class="divider"></view>
-                <router-link to="/faq" class="menu-item">
-                    <i class="icon faq-icon"></i>
-                    常见问题
+                    懒猴听歌
                 </router-link>
             </nav>
 
@@ -214,7 +205,7 @@ export default {
 .menu-item {
     display: flex;
     align-items: center;
-    padding: 12px 20px;
+    padding: 10px 20px;
     color: #fff;
     text-decoration: none;
     transition: all 0.3s ease;

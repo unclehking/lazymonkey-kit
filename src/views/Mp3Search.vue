@@ -2,7 +2,7 @@
     <div class="mp3-page">
         <div class="toolbar">
             <div>
-                <h1>听歌</h1>
+                <h1>懒猴听歌</h1>
                 <p>
                     来源：好听音乐网
                     <a class="source-inline-link" href="https://www.thttt.com/" target="_blank" rel="noopener">thttt.com</a>
@@ -1163,6 +1163,7 @@ export default {
     margin: 0 auto;
     color: #2c3e50;
     padding-bottom: 142px;
+    position: relative;
 }
 
 .toolbar,
@@ -1335,11 +1336,11 @@ button:disabled {
 
 .player {
     position: fixed;
-    right: 20px;
     bottom: -1px;
-    left: 156px;
+    left: calc(50vw + 67px);
+    transform: translateX(-50%);
     z-index: 20;
-    width: min(980px, calc(100vw - 230px));
+    width: 980px;
     max-width: none;
     margin: 0 auto;
     padding: 16px;
@@ -1961,6 +1962,7 @@ button:disabled {
         overflow: hidden;
         box-shadow: none;
         background: #251f30;
+        transform: none;
     }
 
     .player::before {
@@ -2266,6 +2268,7 @@ button:disabled {
         position: relative;
         width: 28px;
         height: 28px;
+        transform: scale(1.5);
     }
 
     .mobile-nav-btn .prev-track-icon::before,
