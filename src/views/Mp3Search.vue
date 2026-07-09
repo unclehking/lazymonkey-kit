@@ -456,7 +456,7 @@ export default {
             try {
                 const pipWindow = await window.documentPictureInPicture.requestWindow({
                     width: 465,
-                    height: 173
+                    height: 224
                 })
                 this.pipWindow = pipWindow
                 this.isPlayerPip = true
@@ -2345,6 +2345,8 @@ button:disabled {
     }
 
     .player.pip-player .disc-cover {
+        position: static;
+        z-index: auto;
         width: 92px;
         height: 92px;
         opacity: 1;
@@ -2353,6 +2355,7 @@ button:disabled {
 
     .player.pip-player .disc-center {
         display: flex;
+        z-index: 2;
     }
 
     .player.pip-player .player-info {
@@ -2364,6 +2367,7 @@ button:disabled {
         min-height: 0;
         width: auto;
         margin-top: 0;
+        padding-bottom: 0;
     }
 
     .player.pip-player .player-header {
