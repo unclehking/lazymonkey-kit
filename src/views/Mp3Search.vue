@@ -1426,7 +1426,7 @@ button:disabled {
     justify-content: center;
     width: 34px;
     height: 34px;
-    border: none;
+    border: 1px solid #c8d2dc;
     border-radius: 50%;
     background: #eef7fb;
     color: #0065a0;
