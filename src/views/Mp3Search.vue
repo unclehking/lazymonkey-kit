@@ -1990,7 +1990,7 @@ button:disabled {
     }
 
     .mobile-now-title {
-        font-size: 24px;
+        font-size: 18px;
         font-weight: 700;
         overflow: hidden;
         text-overflow: ellipsis;
