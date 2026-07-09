@@ -297,10 +297,6 @@ export default {
 
 @media (max-width: 768px) {
     .header {
-        padding: 0 12px;
-    }
-
-    .header span {
         display: none;
     }
 
@@ -315,10 +311,10 @@ export default {
     .sidebar {
         display: none;
         position: fixed;
-        top: 60px;
+        top: 12px;
         right: 12px;
         width: min(260px, calc(100vw - 24px));
-        max-height: calc(100vh - 72px);
+        max-height: calc(100vh - 24px);
         padding: 8px 0;
         border-radius: 8px;
         box-shadow: 0 12px 28px rgba(31, 45, 61, 0.24);

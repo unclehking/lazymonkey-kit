@@ -1925,7 +1925,21 @@ button:disabled {
     }
 
     .mp3-page {
+        padding-top: 74px;
         padding-bottom: 0;
+    }
+
+    .search-box {
+        position: fixed;
+        top: 0;
+        right: 0;
+        left: 0;
+        z-index: 18;
+        box-sizing: border-box;
+        margin-top: 0;
+        border-radius: 0;
+        background: #f5f7fa;
+        box-shadow: 0 6px 18px rgba(31, 45, 61, 0.08);
     }
 
     .player {
@@ -2159,7 +2173,7 @@ button:disabled {
         flex: 0 0 auto;
         width: 100%;
         margin-top: 0;
-        padding-bottom: 132px;
+        padding-bottom: 120px;
     }
 
     .player-header {
@@ -2168,6 +2182,11 @@ button:disabled {
 
     .custom-player-controls {
         margin-top: 0;
+    }
+
+    .progress-wrap {
+        margin-right: 20px;
+        margin-left: 20px;
     }
 
     .progress-slider {
@@ -2179,7 +2198,7 @@ button:disabled {
         color: rgba(255, 255, 255, 0.76);
         font-size: 16px;
         font-weight: 600;
-        margin-top: 8px;
+        margin-top: 0;
     }
 
     .mobile-transport {
@@ -2474,12 +2493,12 @@ button:disabled {
 
     .player-info {
         margin-top: 0;
-        padding-bottom: 110px;
+        padding-bottom: 120px;
     }
 
     .time-row {
         font-size: 15px;
-        margin-top: 6px;
+        margin-top: 0;
     }
 
     .mobile-transport {
