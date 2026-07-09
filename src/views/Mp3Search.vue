@@ -950,7 +950,7 @@ export default {
             this.stopTitleScroll()
             this.currentTitleLyric = cleanText
             const scrollThreshold = 10
-            if (cleanText.length <= scrollThreshold) {
+            if (cleanText.length <= scrollThreshold || this.isMobileViewport()) {
                 document.title = cleanText
                 return
             }
@@ -961,6 +961,9 @@ export default {
                 this.titleScrollIndex = (this.titleScrollIndex + 1) % cleanText.length
                 document.title = cleanText.slice(this.titleScrollIndex) || cleanText
             }, 450)
+        },
+        isMobileViewport() {
+            return window.matchMedia?.('(max-width: 768px)').matches || window.innerWidth <= 768
         },
         stopTitleScroll() {
             if (this.titleScrollTimer) {
