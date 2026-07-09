@@ -1804,6 +1804,16 @@ button:disabled {
 }
 
 @media (max-width: 768px) {
+    button {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    button:active,
+    button:focus {
+        box-shadow: none;
+        outline: none;
+    }
+
     .toolbar {
         align-items: flex-start;
         flex-direction: column;
