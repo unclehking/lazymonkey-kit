@@ -1415,10 +1415,12 @@ button:disabled {
     border-radius: 50%;
     object-fit: cover;
     display: block;
+    animation: disc-spin 8s linear infinite;
+    animation-play-state: paused;
 }
 
 .disc-button.playing .disc-cover {
-    animation: disc-spin 8s linear infinite;
+    animation-play-state: running;
 }
 
 .disc-center {
@@ -1539,12 +1541,16 @@ button:disabled {
     background: #eef7fb;
     color: #0065a0;
     cursor: pointer;
-    transition: background-color 0.2s, color 0.2s;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
 }
 
 .track-nav-btn:hover {
     background: #d9edf6;
     color: #2c3e50;
+}
+
+.track-nav-btn:active {
+    border-color: #0065a0;
 }
 
 .prev-track-icon,
@@ -2196,6 +2202,10 @@ button:disabled {
         background: rgba(255, 255, 255, 0.08);
         color: #fff;
         padding: 0;
+    }
+
+    .mobile-nav-btn:active {
+        border-color: rgba(255, 255, 255, 0.88);
     }
 
     .mobile-nav-btn {
