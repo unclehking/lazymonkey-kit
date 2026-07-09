@@ -1948,7 +1948,7 @@ button:disabled {
         height: 100vh;
         height: 100dvh;
         max-width: none;
-        padding: 24px 24px 28px;
+        padding: 24px 24px 20px;
         border: none;
         border-radius: 0;
         color: #fff;
