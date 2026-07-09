@@ -51,24 +51,32 @@
             :class="{ 'pip-player': isPlayerPip }"
         >
             <div class="player-main">
-            <button
-                type="button"
-                class="disc-button"
-                :class="{ playing: isAudioPlaying }"
-                :title="isAudioPlaying ? '暂停播放' : '播放音乐'"
-                @click="toggleAudioPlayback"
-            >
-                <img
-                    class="disc-cover"
-                    :src="currentSong.pic || defaultCover"
-                    :alt="currentSong.title"
-                    @error="setDefaultCover"
+            <div class="disc-controls">
+                <button type="button" class="track-nav-btn" title="上一曲" @click="playPreviousSong">
+                    <span class="prev-track-icon" aria-hidden="true"></span>
+                </button>
+                <button
+                    type="button"
+                    class="disc-button"
+                    :class="{ playing: isAudioPlaying }"
+                    :title="isAudioPlaying ? '暂停播放' : '播放音乐'"
+                    @click="toggleAudioPlayback"
                 >
-                <span class="disc-center" aria-hidden="true">
-                    <span v-if="isAudioPlaying" class="pause-icon"></span>
-                    <span v-else class="play-icon"></span>
-                </span>
-            </button>
+                    <img
+                        class="disc-cover"
+                        :src="currentSong.pic || defaultCover"
+                        :alt="currentSong.title"
+                        @error="setDefaultCover"
+                    >
+                    <span class="disc-center" aria-hidden="true">
+                        <span v-if="isAudioPlaying" class="pause-icon"></span>
+                        <span v-else class="play-icon"></span>
+                    </span>
+                </button>
+                <button type="button" class="track-nav-btn" title="下一曲" @click="playNextSong">
+                    <span class="next-track-icon" aria-hidden="true"></span>
+                </button>
+            </div>
             <div class="player-info">
                 <div class="player-header">
                     <h2>{{ currentSong.title }}</h2>
@@ -105,9 +113,6 @@
                     @ended="handleSongEnded"
                 ></audio>
                 <div class="custom-player-controls">
-                    <button type="button" class="track-nav-btn" title="上一曲" @click="playPreviousSong">
-                        <span class="prev-track-icon" aria-hidden="true"></span>
-                    </button>
                     <div class="progress-wrap">
                         <input
                             class="progress-slider"
@@ -123,9 +128,6 @@
                             <span>{{ formatAudioTime(audioDuration) }}</span>
                         </div>
                     </div>
-                    <button type="button" class="track-nav-btn" title="下一曲" @click="playNextSong">
-                        <span class="next-track-icon" aria-hidden="true"></span>
-                    </button>
                 </div>
             </div>
             </div>
@@ -1276,6 +1278,14 @@ button:disabled {
     min-height: 0;
 }
 
+.disc-controls {
+    display: grid;
+    grid-template-columns: 34px 92px 34px;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
+}
+
 .disc-button {
     position: relative;
     width: 92px;
@@ -1404,10 +1414,7 @@ button:disabled {
 }
 
 .custom-player-controls {
-    display: grid;
-    grid-template-columns: 34px minmax(0, 1fr) 34px;
-    align-items: center;
-    gap: 10px;
+    display: block;
 }
 
 .track-nav-btn {
@@ -1815,6 +1822,11 @@ button:disabled {
     .player-main {
         align-items: center;
         gap: 12px;
+    }
+
+    .disc-controls {
+        grid-template-columns: 30px 64px 30px;
+        gap: 6px;
     }
 
     .disc-button {
