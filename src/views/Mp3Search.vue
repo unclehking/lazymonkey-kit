@@ -1,5 +1,5 @@
 <template>
-    <div class="mp3-page">
+    <div class="mp3-page" :class="{ 'has-mobile-now-playing': showMobileNowPlayingBar }">
         <div class="toolbar">
             <div>
                 <h1>懒猴听歌</h1>
@@ -2009,6 +2009,10 @@ button:disabled {
     .mp3-page {
         padding-top: 74px;
         padding-bottom: 0;
+    }
+
+    .mp3-page.has-mobile-now-playing {
+        padding-top: 118px;
     }
 
     .search-box {
