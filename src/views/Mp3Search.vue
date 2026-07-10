@@ -320,6 +320,7 @@ export default {
             pipWindow: null,
             isPlayerPip: false,
             mobilePlayerOpen: true,
+            mobilePlayerHistoryActive: false,
             isCurrentSongOutOfView: false,
             playMode: 'sequence',
             mobileLyricVisibleCount: 3,
@@ -344,6 +345,7 @@ export default {
         })
         window.addEventListener('keydown', this.handlePlayerKeydown)
         window.addEventListener('resize', this.updateMobileLyricVisibleCount, { passive: true })
+        window.addEventListener('popstate', this.handleMobilePlayerPopState)
         this.updateMobileLyricVisibleCount()
         if (this.keyword) {
             this.searchMusic()
@@ -355,6 +357,7 @@ export default {
         this.scrollContainer?.removeEventListener('scroll', this.handlePageScroll)
         window.removeEventListener('keydown', this.handlePlayerKeydown)
         window.removeEventListener('resize', this.updateMobileLyricVisibleCount)
+        window.removeEventListener('popstate', this.handleMobilePlayerPopState)
         this.closePlayerPip()
         this.stopLyricsResize()
         this.resetPageTitle()
@@ -455,11 +458,41 @@ export default {
             this.playMode = PLAY_MODES[(currentIndex + 1) % PLAY_MODES.length]
         },
         closeMobilePlayer() {
+            if (this.mobilePlayerHistoryActive && this.isMobileViewport()) {
+                window.history.back()
+                return
+            }
+
             this.mobilePlayerOpen = false
             this.$nextTick(this.updateCurrentSongVisibility)
         },
         openMobilePlayer() {
             this.mobilePlayerOpen = true
+            this.$nextTick(() => {
+                this.pushMobilePlayerHistory()
+                this.updateCurrentSongVisibility()
+            })
+        },
+        isMobileViewport() {
+            return window.matchMedia?.('(max-width: 768px)').matches
+        },
+        pushMobilePlayerHistory() {
+            if (!this.isMobileViewport() || !this.currentSong || !this.mobilePlayerOpen || this.mobilePlayerHistoryActive) return
+
+            window.history.pushState({
+                ...(window.history.state || {}),
+                lazyMonkeyMobilePlayer: true
+            }, '', window.location.href)
+            this.mobilePlayerHistoryActive = true
+        },
+        handleMobilePlayerPopState() {
+            if (!this.mobilePlayerHistoryActive) return
+
+            this.mobilePlayerHistoryActive = false
+            if (this.mobilePlayerOpen) {
+                this.mobilePlayerOpen = false
+                this.$nextTick(this.updateCurrentSongVisibility)
+            }
         },
         async togglePlayerPip() {
             if (this.isPlayerPip) {
@@ -928,7 +961,7 @@ export default {
             const isMobile = window.matchMedia?.('(max-width: 768px)').matches
             if (!isMobile || song.loading || event.target.closest('button')) return
             if (this.isCurrentSong(song)) {
-                this.mobilePlayerOpen = true
+                this.openMobilePlayer()
                 return
             }
 
@@ -973,7 +1006,7 @@ export default {
                     audioUrl: data.url,
                     lrcUrl: data.lrc || ''
                 }
-                this.mobilePlayerOpen = true
+                this.openMobilePlayer()
                 this.setPageTitle(this.currentSong.title)
                 this.loadLyrics(this.currentSong.lrcUrl)
                 this.$nextTick(() => {
