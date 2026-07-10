@@ -49,7 +49,7 @@
             ref="player"
             class="player"
             :style="playerCoverStyle"
-            :class="{ 'pip-player': isPlayerPip }"
+            :class="{ 'pip-player': isPlayerPip, 'mobile-player-closed': !mobilePlayerOpen }"
         >
             <div class="mobile-player-top">
                 <button type="button" class="mobile-icon-btn" title="返回" @click="closeMobilePlayer">
@@ -301,6 +301,7 @@ export default {
             isResizingLyrics: false,
             pipWindow: null,
             isPlayerPip: false,
+            mobilePlayerOpen: true,
             playMode: 'sequence',
             mobileLyricVisibleCount: 3,
             currentPage: 1,
@@ -432,11 +433,7 @@ export default {
             this.playMode = PLAY_MODES[(currentIndex + 1) % PLAY_MODES.length]
         },
         closeMobilePlayer() {
-            this.currentSong = null
-            this.isAudioPlaying = false
-            this.audioCurrentTime = 0
-            this.audioDuration = 0
-            this.resetPageTitle()
+            this.mobilePlayerOpen = false
         },
         async togglePlayerPip() {
             if (this.isPlayerPip) {
@@ -884,7 +881,11 @@ export default {
         },
         playSongFromItem(song, event) {
             const isMobile = window.matchMedia?.('(max-width: 768px)').matches
-            if (!isMobile || song.loading || this.isCurrentSong(song) || event.target.closest('button')) return
+            if (!isMobile || song.loading || event.target.closest('button')) return
+            if (this.isCurrentSong(song)) {
+                this.mobilePlayerOpen = true
+                return
+            }
 
             this.playSong(song)
         },
@@ -927,6 +928,7 @@ export default {
                     audioUrl: data.url,
                     lrcUrl: data.lrc || ''
                 }
+                this.mobilePlayerOpen = true
                 this.setPageTitle(this.currentSong.title)
                 this.loadLyrics(this.currentSong.lrcUrl)
                 this.$nextTick(() => {
@@ -1963,6 +1965,10 @@ button:disabled {
         box-shadow: none;
         background: #251f30;
         transform: none;
+    }
+
+    .player.mobile-player-closed {
+        display: none;
     }
 
     .player::before {
