@@ -35,7 +35,7 @@
                     <span></span>
                     <span></span>
                 </span>
-                <span class="title">{{ currentSongTitle }}</span>
+                <span class="title">{{ currentSongTitle }} - {{ currentSongArtist }}</span>
             </div>
             <span class="mobile-now-playing-arrow" aria-hidden="true"></span>
         </button>
