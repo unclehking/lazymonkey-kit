@@ -28,7 +28,15 @@
             class="mobile-now-playing-bar"
             @click="openMobilePlayer"
         >
-            <div>正在播放: <span class="title">{{ currentSongTitle }}</span></div>
+            <div class="mobile-now-playing-content">
+                <span class="mobile-now-playing-bars" aria-label="正在播放">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </span>
+                <span class="title">{{ currentSongTitle }}</span>
+            </div>
             <span class="mobile-now-playing-arrow" aria-hidden="true"></span>
         </button>
 
@@ -2009,11 +2017,48 @@ button:disabled {
         border-top: none;
         margin-top: -8px;
     }
-    .mobile-now-playing-bar .title{
-      color: #0065a0;
+    .mobile-now-playing-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
     }
 
-    .mobile-now-playing-bar span:first-child {
+    .mobile-now-playing-bars {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        flex: 0 0 auto;
+        width: 18px;
+        height: 18px;
+    }
+
+    .mobile-now-playing-bars span {
+        width: 3px;
+        height: 7px;
+        border-radius: 2px;
+        background: #0065a0;
+        animation: musicBar 1.0s ease-in-out infinite;
+    }
+
+    .mobile-now-playing-bars span:nth-child(2) {
+        animation-delay: 0.12s;
+    }
+
+    .mobile-now-playing-bars span:nth-child(3) {
+        animation-delay: 0.24s;
+    }
+
+    .mobile-now-playing-bars span:nth-child(4) {
+        animation-delay: 0.36s;
+    }
+
+    .mobile-now-playing-bar .title {
+        color: #0065a0;
+    }
+
+    .mobile-now-playing-content .title {
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
