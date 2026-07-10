@@ -2045,7 +2045,7 @@ button:disabled {
         border-radius: 0;
         background: #fff;
         color: #2c3e50;
-        box-shadow: 0 6px 18px -7px rgba(31, 45, 61, 0.08);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
         font-size: 14px;
         text-align: left;
         border: 1px solid #e7eaee;
