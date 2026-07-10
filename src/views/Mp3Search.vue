@@ -168,6 +168,7 @@
                         :key="`${line.index}-${line.time}`"
                         class="mobile-lyric-line"
                         :class="{ active: line.index === activeLyricIndex }"
+                        :style="line.mobileStyle"
                     >
                         {{ line.text }}
                     </div>
@@ -385,10 +386,19 @@ export default {
             const activeOffset = Math.floor(visibleCount / 2)
             const startIndex = Math.max(0, Math.min(activeIndex - activeOffset, this.lyrics.length - visibleCount))
 
-            return this.lyrics.slice(startIndex, startIndex + visibleCount).map((line, offset) => ({
-                ...line,
-                index: startIndex + offset
-            }))
+            return this.lyrics.slice(startIndex, startIndex + visibleCount).map((line, offset) => {
+                const index = startIndex + offset
+                const distance = Math.abs(index - activeIndex)
+
+                return {
+                    ...line,
+                    index,
+                    mobileStyle: {
+                        '--mobile-lyric-font-size': `${Math.max(12, 18 - distance)}px`,
+                        '--mobile-lyric-opacity': Math.max(0.16, 1 - distance * 0.16).toFixed(2)
+                    }
+                }
+            })
         },
         currentSongTitle() {
             const parsed = this.parseTitle(this.currentSong?.title || '')
@@ -2329,12 +2339,14 @@ button:disabled {
     }
 
     .mobile-lyric-line {
-        color: rgba(255, 255, 255, 0.54);
-        font-size: 16px;
+        color: #fff;
+        font-size: var(--mobile-lyric-font-size, 16px);
         font-weight: 600;
         line-height: 1.35;
+        opacity: var(--mobile-lyric-opacity, 0.54);
         overflow: hidden;
         text-overflow: ellipsis;
+        transition: color 0.25s ease, font-size 0.25s ease, opacity 0.25s ease;
         white-space: nowrap;
     }
 
@@ -2342,6 +2354,7 @@ button:disabled {
         color: #9fb1ff;
         font-size: 18px;
         font-weight: 800;
+        opacity: 1;
     }
 
     .lyrics-panel {
