@@ -22,6 +22,16 @@
             </button>
         </form>
 
+        <button
+            v-if="showMobileNowPlayingBar"
+            type="button"
+            class="mobile-now-playing-bar"
+            @click="openMobilePlayer"
+        >
+            <div>正在播放: <span class="title">{{ currentSongTitle }}</span></div>
+            <span class="mobile-now-playing-arrow" aria-hidden="true"></span>
+        </button>
+
         <div v-if="message && !needVerify" class="message" :class="{ error: messageType === 'error' }">
             {{ message }}
         </div>
@@ -302,6 +312,7 @@ export default {
             pipWindow: null,
             isPlayerPip: false,
             mobilePlayerOpen: true,
+            isCurrentSongOutOfView: false,
             playMode: 'sequence',
             mobileLyricVisibleCount: 3,
             currentPage: 1,
@@ -375,6 +386,9 @@ export default {
         currentSongArtist() {
             return this.parseTitle(this.currentSong?.title || '').singer
         },
+        showMobileNowPlayingBar() {
+            return Boolean(this.currentSong && !this.mobilePlayerOpen && this.isCurrentSongOutOfView)
+        },
         playerCoverStyle() {
             const cover = this.currentSong?.pic || this.defaultCover
             return {
@@ -434,6 +448,10 @@ export default {
         },
         closeMobilePlayer() {
             this.mobilePlayerOpen = false
+            this.$nextTick(this.updateCurrentSongVisibility)
+        },
+        openMobilePlayer() {
+            this.mobilePlayerOpen = true
         },
         async togglePlayerPip() {
             if (this.isPlayerPip) {
@@ -664,6 +682,7 @@ export default {
             })
         },
         handlePageScroll() {
+            this.updateCurrentSongVisibility()
             if (!this.hasSearched || !this.results.length || !this.hasMoreResults || this.loading || this.loadingMore) return
 
             const target = this.scrollContainer === window ? document.documentElement : this.scrollContainer
@@ -673,6 +692,24 @@ export default {
             if (scrollHeight - scrollTop - clientHeight < 240) {
                 this.loadMoreSongs()
             }
+        },
+        updateCurrentSongVisibility() {
+            const isMobile = window.matchMedia?.('(max-width: 768px)').matches
+            if (!isMobile || !this.currentSong) {
+                this.isCurrentSongOutOfView = false
+                return
+            }
+
+            const currentItem = this.$el.querySelector('.song-item.playing')
+            if (!currentItem) {
+                this.isCurrentSongOutOfView = false
+                return
+            }
+
+            const rect = currentItem.getBoundingClientRect()
+            const topLimit = this.showMobileNowPlayingBar ? 120 : 74
+            const bottomLimit = window.innerHeight || document.documentElement.clientHeight
+            this.isCurrentSongOutOfView = rect.bottom <= topLimit || rect.top >= bottomLimit
         },
         async playRandomSong(songs = this.results) {
             const playableSongs = songs.filter((song) => song.sourceId)
@@ -932,6 +969,7 @@ export default {
                 this.setPageTitle(this.currentSong.title)
                 this.loadLyrics(this.currentSong.lrcUrl)
                 this.$nextTick(() => {
+                    this.updateCurrentSongVisibility()
                     this.$refs.audioPlayer?.play?.().catch(() => {
                         this.showMessage('浏览器拦截了自动播放，请手动点击播放器播放。')
                     })
@@ -1943,6 +1981,52 @@ button:disabled {
         border-radius: 0;
         background: #f5f7fa;
         box-shadow: 0 6px 18px rgba(31, 45, 61, 0.08);
+    }
+
+    .mobile-now-playing-bar {
+        position: fixed;
+        top: 66px;
+        right: 0;
+        left: 0;
+        z-index: 17;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        width: 100%;
+        height: 44px;
+        padding: 0 16px;
+        border: none;
+        border-radius: 0;
+        background: #fff;
+        color: #2c3e50;
+        box-shadow: 0 6px 18px -7px rgba(31, 45, 61, 0.08);
+        font-size: 14px;
+        text-align: left;
+        border: 1px solid #e7eaee;
+        background: #f5f7fa;
+        z-index: 99;
+        border-top: none;
+        margin-top: -8px;
+    }
+    .mobile-now-playing-bar .title{
+      color: #0065a0;
+    }
+
+    .mobile-now-playing-bar span:first-child {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .mobile-now-playing-arrow {
+        flex: 0 0 auto;
+        width: 10px;
+        height: 10px;
+        border-top: 1px solid currentColor;
+        border-right: 1px solid currentColor;
+        transform: rotate(45deg) scale(0.9);
     }
 
     .player {
