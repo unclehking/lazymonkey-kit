@@ -1,12 +1,5 @@
 <template>
     <div class="app-container" :class="{ 'mp3-route': $route.path === '/mp3-search' }">
-        <!-- 添加微信提示弹窗 -->
-        <div v-if="showWeixinTip" class="weixin-tip">
-            <div class="tip-content">
-                要完整使用此站点功能，请点击右上角"..."，选择"在浏览器中打开"
-                <button class="close-btn" @click="showWeixinTip = false">知道了</button>
-            </div>
-        </div>
         <!-- 顶部状态栏 -->
         <header class="header">
             <router-link to="/" class="logo">
@@ -114,20 +107,10 @@
 export default {
     data() {
         return {
-            showWeixinTip: false,
             mobileMenuOpen: false
         }
     },
-    mounted() {
-        this.checkWeixinBrowser()
-    },
     methods: {
-        checkWeixinBrowser() {
-            const ua = navigator.userAgent.toLowerCase()
-            if (ua.match(/MicroMessenger/i) == "micromessenger") {
-                this.showWeixinTip = true
-            }
-        },
         closeMobileMenu(event) {
             if (event.target.closest('.menu-item')) {
                 this.mobileMenuOpen = false
@@ -249,41 +232,6 @@ export default {
 .logo-icon {
     display: inline-block;
     vertical-align: middle;
-}
-
-.weixin-tip {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.tip-content {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    max-width: 80%;
-    text-align: center;
-}
-
-.close-btn {
-    margin-top: 15px;
-    padding: 8px 20px;
-    background: #2c3e50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.close-btn:hover {
-    opacity: 0.9;
 }
 
 @media (max-width: 768px) {

@@ -17,7 +17,7 @@ No test runner or linter is configured.
 
 ## Architecture
 
-**Layout** (`App.vue`): Fixed header (60px) + sidebar nav (150px, dark #2c3e50) + scrollable main content area. Global styles are in `<style>` blocks (no external CSS framework). WeChat browser detection overlay on mount.
+**Layout** (`App.vue`): Fixed header (60px) + sidebar nav (150px, dark #2c3e50) + scrollable main content area. Global styles are in `<style>` blocks (no external CSS framework).
 
 **Routing** (`src/router/index.js`): Vue Router with Web History mode. All tool pages are lazy-loaded view components. Unknown routes redirect to `/`.
 

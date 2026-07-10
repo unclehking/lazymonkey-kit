@@ -419,6 +419,10 @@ export default {
             } else {
                 this.mobileLyricVisibleCount = 3
             }
+
+            if (this.isMobileViewport() && this.currentSong) {
+                this.setPageTitle(this.currentSong.title)
+            }
         },
         restoreCachedSettings() {
             this.keyword = window.localStorage.getItem(CACHE_KEYS.keyword) || ''
@@ -1111,6 +1115,8 @@ export default {
             }
         },
         syncLyricTitle() {
+            if (this.isMobileViewport()) return
+
             const audio = this.$refs.audioPlayer
             const lyric = this.lyrics[this.activeLyricIndex]?.text
             if (!lyric || !audio || audio.paused || audio.ended) return
