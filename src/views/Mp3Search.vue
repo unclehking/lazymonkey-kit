@@ -2106,17 +2106,17 @@ button:disabled {
     }
 
     .mp3-page {
-        padding-top: 74px;
+        padding-top: calc(74px + var(--app-safe-top, env(safe-area-inset-top, 0px)));
         padding-bottom: 0;
     }
 
     .mp3-page.has-mobile-now-playing {
-        padding-top: 118px;
+        padding-top: calc(118px + var(--app-safe-top, env(safe-area-inset-top, 0px)));
     }
 
     .search-box {
         position: fixed;
-        top: 0;
+        top: var(--app-safe-top, env(safe-area-inset-top, 0px));
         right: 0;
         left: 0;
         z-index: 18;
@@ -2129,7 +2129,7 @@ button:disabled {
 
     .mobile-now-playing-bar {
         position: fixed;
-        top: 66px;
+        top: calc(66px + var(--app-safe-top, env(safe-area-inset-top, 0px)));
         right: 0;
         left: 0;
         z-index: 17;

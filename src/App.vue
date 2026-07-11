@@ -121,6 +121,10 @@ export default {
 </script>
 
 <style>
+:root {
+    --app-safe-top: env(safe-area-inset-top, 0px);
+}
+
 .app-container {
     height: 100vh;
     display: flex;
