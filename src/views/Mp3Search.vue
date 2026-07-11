@@ -345,8 +345,11 @@ export default {
             this.scrollContainer.addEventListener('scroll', this.handlePageScroll, { passive: true })
         })
         window.addEventListener('keydown', this.handlePlayerKeydown)
+        window.addEventListener('car-media-command', this.handleCarMediaCommand)
+        window.__carMediaCommandHandled = true
         window.addEventListener('resize', this.updateMobileLyricVisibleCount, { passive: true })
         window.addEventListener('popstate', this.handleMobilePlayerPopState)
+        this.setupMediaSession()
         this.updateMobileLyricVisibleCount()
         if (this.keyword) {
             this.searchMusic()
@@ -357,8 +360,11 @@ export default {
     beforeUnmount() {
         this.scrollContainer?.removeEventListener('scroll', this.handlePageScroll)
         window.removeEventListener('keydown', this.handlePlayerKeydown)
+        window.removeEventListener('car-media-command', this.handleCarMediaCommand)
+        window.__carMediaCommandHandled = false
         window.removeEventListener('resize', this.updateMobileLyricVisibleCount)
         window.removeEventListener('popstate', this.handleMobilePlayerPopState)
+        this.clearMediaSession()
         this.closePlayerPip()
         this.stopLyricsResize()
         this.resetPageTitle()
@@ -592,10 +598,86 @@ export default {
         },
         handleAudioPlay() {
             this.isAudioPlaying = true
+            this.updateMediaSessionPlaybackState('playing')
             this.syncLyricTitle()
         },
         handleAudioPause() {
             this.isAudioPlaying = false
+            this.updateMediaSessionPlaybackState('paused')
+        },
+        handleCarMediaCommand(event) {
+            const command = event?.detail?.command
+            if (command === 'previous') {
+                this.playPreviousSong()
+            } else if (command === 'next') {
+                this.playNextSong()
+            } else if (command === 'play') {
+                this.playAudio()
+            } else if (command === 'pause') {
+                this.pauseAudio()
+            }
+        },
+        playAudio() {
+            const audio = this.$refs.audioPlayer
+            if (!audio || !audio.paused) return
+            audio.play().catch(() => {
+                this.showMessage('浏览器拦截了播放，请稍后再试。')
+            })
+        },
+        pauseAudio() {
+            const audio = this.$refs.audioPlayer
+            if (audio && !audio.paused) audio.pause()
+        },
+        setupMediaSession() {
+            if (!('mediaSession' in navigator)) return
+
+            const handlers = {
+                play: () => this.playAudio(),
+                pause: () => this.pauseAudio(),
+                previoustrack: () => this.playPreviousSong(),
+                nexttrack: () => this.playNextSong()
+            }
+            Object.entries(handlers).forEach(([action, handler]) => {
+                try {
+                    navigator.mediaSession.setActionHandler(action, handler)
+                } catch (error) {
+                    console.warn(`Media Session 不支持 ${action}`, error)
+                }
+            })
+            this.updateMediaSessionPlaybackState('none')
+        },
+        clearMediaSession() {
+            if (!('mediaSession' in navigator)) return
+            ;['play', 'pause', 'previoustrack', 'nexttrack'].forEach((action) => {
+                try {
+                    navigator.mediaSession.setActionHandler(action, null)
+                } catch (error) {
+                    console.warn(`清理 Media Session ${action} 失败`, error)
+                }
+            })
+            this.updateMediaSessionPlaybackState('none')
+        },
+        updateMediaSessionPlaybackState(state) {
+            if (!('mediaSession' in navigator)) return
+            try {
+                navigator.mediaSession.playbackState = state
+            } catch (error) {
+                console.warn('更新 Media Session 播放状态失败', error)
+            }
+        },
+        updateMediaSessionMetadata() {
+            if (!('mediaSession' in navigator) || !this.currentSong) return
+            const titleParts = String(this.currentSong.title || '').split(' - ')
+            try {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: titleParts.slice(1).join(' - ') || titleParts[0] || '正在播放',
+                    artist: titleParts.length > 1 ? titleParts[0] : '',
+                    album: '懒猴音乐',
+                    artwork: this.currentSong.pic ? [{ src: this.currentSong.pic }] : []
+                })
+            } catch (error) {
+                console.warn('更新 Media Session 歌曲信息失败', error)
+            }
         },
         handlePlayerKeydown(event) {
             if (!this.currentSong) return
@@ -1020,6 +1102,7 @@ export default {
                     audioUrl: data.url,
                     lrcUrl: data.lrc || ''
                 }
+                this.updateMediaSessionMetadata()
                 this.openMobilePlayer()
                 this.setPageTitle(this.currentSong.title)
                 this.loadLyrics(this.currentSong.lrcUrl)
