@@ -347,6 +347,7 @@ export default {
         window.addEventListener('keydown', this.handlePlayerKeydown)
         window.addEventListener('car-media-command', this.handleCarMediaCommand)
         window.__carMediaCommandHandled = true
+        this.exposeAppPlayerApi()
         window.addEventListener('resize', this.updateMobileLyricVisibleCount, { passive: true })
         window.addEventListener('popstate', this.handleMobilePlayerPopState)
         this.setupMediaSession()
@@ -362,6 +363,7 @@ export default {
         window.removeEventListener('keydown', this.handlePlayerKeydown)
         window.removeEventListener('car-media-command', this.handleCarMediaCommand)
         window.__carMediaCommandHandled = false
+        this.removeAppPlayerApi()
         window.removeEventListener('resize', this.updateMobileLyricVisibleCount)
         window.removeEventListener('popstate', this.handleMobilePlayerPopState)
         this.clearMediaSession()
@@ -424,6 +426,28 @@ export default {
         }
     },
     methods: {
+        exposeAppPlayerApi() {
+            // 提供给 uni-app WebView 的稳定公开接口，不依赖页面按钮或 DOM 结构。
+            window.LazyMonkeyPlayer = {
+                version: 1,
+                play: () => this.playAudio(),
+                pause: () => this.pauseAudio(),
+                previous: () => this.playPreviousSong(),
+                next: () => this.playNextSong(),
+                toggle: () => this.toggleAudioPlayback(),
+                getState: () => ({
+                    ready: Boolean(this.currentSong),
+                    playing: Boolean(this.isAudioPlaying),
+                    title: this.currentSong?.title || ''
+                })
+            }
+            window.dispatchEvent(new CustomEvent('lazy-monkey-player-ready'))
+        },
+        removeAppPlayerApi() {
+            if (window.LazyMonkeyPlayer?.version === 1) {
+                delete window.LazyMonkeyPlayer
+            }
+        },
         updateMobileLyricVisibleCount() {
             const height = window.innerHeight || 0
             if (height >= 880) {
