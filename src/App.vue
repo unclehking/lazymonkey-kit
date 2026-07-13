@@ -121,24 +121,6 @@ export default {
 </script>
 
 <style>
-:root {
-    --app-safe-top: env(safe-area-inset-top, 0px);
-}
-
-/* App 内 WebView 全屏渲染时，为系统状态栏提供固定的不透明底色。 */
-html.inside-native-app::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    right: 0;
-    left: 0;
-    z-index: 10000;
-    display: block;
-    height: var(--app-safe-top, env(safe-area-inset-top, 0px));
-    background: #f5f7fa;
-    pointer-events: none;
-}
-
 .app-container {
     height: 100vh;
     display: flex;
