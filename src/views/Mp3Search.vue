@@ -377,6 +377,9 @@ export default {
         },
         playMode(value) {
             window.localStorage.setItem(CACHE_KEYS.playMode, value)
+        },
+        results() {
+            this.$nextTick(this.updateCurrentSongVisibility)
         }
     },
     computed: {
@@ -863,7 +866,7 @@ export default {
 
             const currentItem = this.$el.querySelector('.song-item.playing')
             if (!currentItem) {
-                this.isCurrentSongOutOfView = false
+                this.isCurrentSongOutOfView = true
                 return
             }
 
