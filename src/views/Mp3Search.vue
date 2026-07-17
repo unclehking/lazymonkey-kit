@@ -1546,7 +1546,7 @@ button:disabled {
     bottom: -1px;
     left: calc(50vw + 67px);
     transform: translateX(-50%);
-    z-index: 20;
+    z-index: 999;
     width: 980px;
     max-width: none;
     margin: 0 auto;
