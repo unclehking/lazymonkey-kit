@@ -67,7 +67,11 @@
             ref="player"
             class="player"
             :style="playerCoverStyle"
-            :class="{ 'pip-player': isPlayerPip, 'mobile-player-closed': !mobilePlayerOpen }"
+            :class="{
+                'pip-player': isPlayerPip,
+                'mobile-player-closed': !mobilePlayerOpen,
+                'mobile-lyrics-fullscreen': mobileLyricsFullscreen
+            }"
         >
             <div class="mobile-player-top">
                 <button type="button" class="mobile-icon-btn" title="返回" @click="closeMobilePlayer">
@@ -162,9 +166,18 @@
             </div>
             </div>
             <div class="mobile-song-meta">
-                <div class="mobile-lyrics">
+                <div
+                    ref="mobileLyricsList"
+                    class="mobile-lyrics"
+                    role="button"
+                    tabindex="0"
+                    :title="mobileLyricsFullscreen ? '点击返回歌曲界面' : '点击全屏显示歌词'"
+                    @click="toggleMobileLyricsFullscreen"
+                    @keydown.enter.prevent="toggleMobileLyricsFullscreen"
+                    @keydown.space.prevent="toggleMobileLyricsFullscreen"
+                >
                     <div
-                        v-for="line in mobileLyricLines"
+                        v-for="line in displayedMobileLyricLines"
                         :key="`${line.index}-${line.time}`"
                         class="mobile-lyric-line"
                         :class="{ active: line.index === activeLyricIndex }"
@@ -172,7 +185,7 @@
                     >
                         {{ line.text }}
                     </div>
-                    <div v-if="!mobileLyricLines.length" class="mobile-lyric-line active">暂无歌词</div>
+                    <div v-if="!displayedMobileLyricLines.length" class="mobile-lyric-line active">暂无歌词</div>
                 </div>
             </div>
             <div class="mobile-transport">
@@ -321,6 +334,7 @@ export default {
             pipWindow: null,
             isPlayerPip: false,
             mobilePlayerOpen: true,
+            mobileLyricsFullscreen: false,
             mobilePlayerHistoryActive: false,
             isCurrentSongOutOfView: false,
             playMode: 'sequence',
@@ -410,6 +424,15 @@ export default {
                     }
                 }
             })
+        },
+        displayedMobileLyricLines() {
+            if (!this.mobileLyricsFullscreen) return this.mobileLyricLines
+
+            return this.lyrics.map((line, index) => ({
+                ...line,
+                index,
+                mobileStyle: null
+            }))
         },
         currentSongTitle() {
             const parsed = this.parseTitle(this.currentSong?.title || '')
@@ -510,6 +533,7 @@ export default {
                 return
             }
 
+            this.mobileLyricsFullscreen = false
             this.mobilePlayerOpen = false
             this.$nextTick(this.updateCurrentSongVisibility)
         },
@@ -522,6 +546,14 @@ export default {
         },
         isMobileViewport() {
             return window.matchMedia?.('(max-width: 768px)').matches
+        },
+        toggleMobileLyricsFullscreen() {
+            if (!this.isMobileViewport()) return
+
+            this.mobileLyricsFullscreen = !this.mobileLyricsFullscreen
+            if (this.mobileLyricsFullscreen) {
+                this.scrollActiveLyric('auto')
+            }
         },
         pushMobilePlayerHistory() {
             if (!this.isMobileViewport() || !this.currentSong || !this.mobilePlayerOpen || this.mobilePlayerHistoryActive) return
@@ -537,6 +569,7 @@ export default {
 
             this.mobilePlayerHistoryActive = false
             if (this.mobilePlayerOpen) {
+                this.mobileLyricsFullscreen = false
                 this.mobilePlayerOpen = false
                 this.$nextTick(this.updateCurrentSongVisibility)
             }
@@ -1309,18 +1342,24 @@ export default {
             this.$nextTick(() => {
                 const list = this.$refs.lyricsList
                 const activeLine = list?.querySelector('.lyric-line.active')
-                if (!list || !activeLine) return
+                if (list && activeLine) {
+                    const listRect = list.getBoundingClientRect()
+                    const activeRect = activeLine.getBoundingClientRect()
+                    const currentOffset = activeRect.top - listRect.top
+                    const targetTop = list.scrollTop + currentOffset - (list.clientHeight - activeLine.clientHeight) / 2
+                    const maxTop = Math.max(0, list.scrollHeight - list.clientHeight)
 
-                const listRect = list.getBoundingClientRect()
-                const activeRect = activeLine.getBoundingClientRect()
-                const currentOffset = activeRect.top - listRect.top
-                const targetTop = list.scrollTop + currentOffset - (list.clientHeight - activeLine.clientHeight) / 2
-                const maxTop = Math.max(0, list.scrollHeight - list.clientHeight)
+                    list.scrollTo({
+                        top: Math.min(Math.max(targetTop, 0), maxTop),
+                        behavior
+                    })
+                }
 
-                list.scrollTo({
-                    top: Math.min(Math.max(targetTop, 0), maxTop),
-                    behavior
-                })
+                const mobileList = this.$refs.mobileLyricsList
+                const activeMobileLine = mobileList?.querySelector('.mobile-lyric-line.active')
+                if (this.mobileLyricsFullscreen && mobileList && activeMobileLine) {
+                    activeMobileLine.scrollIntoView({ block: 'center', behavior })
+                }
             })
         },
         normalizeSourceUrl(url) {
@@ -2446,6 +2485,65 @@ button:disabled {
         align-content: center;
         max-height: 100%;
         overflow: hidden;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .mobile-lyrics:focus-visible {
+        outline: 2px solid rgba(159, 177, 255, 0.9);
+        outline-offset: 4px;
+    }
+
+    .player.mobile-lyrics-fullscreen {
+        gap: 0;
+        padding: 0;
+    }
+
+    .player.mobile-lyrics-fullscreen .mobile-player-top,
+    .player.mobile-lyrics-fullscreen .player-main,
+    .player.mobile-lyrics-fullscreen .mobile-transport {
+        display: none;
+    }
+
+    .player.mobile-lyrics-fullscreen .mobile-song-meta {
+        display: block;
+        flex: 1 1 100%;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+    }
+
+    .player.mobile-lyrics-fullscreen .mobile-lyrics {
+        display: block;
+        width: 100%;
+        height: 100%;
+        max-height: none;
+        padding: 50vh 24px;
+        padding: 50dvh 24px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: none;
+    }
+
+    .player.mobile-lyrics-fullscreen .mobile-lyrics::-webkit-scrollbar {
+        display: none;
+    }
+
+    .player.mobile-lyrics-fullscreen .mobile-lyric-line {
+        padding: 10px 0;
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 17px;
+        line-height: 1.55;
+        opacity: 0.56;
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+    }
+
+    .player.mobile-lyrics-fullscreen .mobile-lyric-line.active {
+        color: #fff;
+        font-size: 22px;
+        opacity: 1;
     }
 
     .mobile-lyric-line {
