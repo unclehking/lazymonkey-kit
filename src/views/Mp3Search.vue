@@ -335,6 +335,7 @@ export default {
             isPlayerPip: false,
             mobilePlayerOpen: true,
             mobileLyricsFullscreen: false,
+            mobileLyricsHistoryActive: false,
             mobilePlayerHistoryActive: false,
             isCurrentSongOutOfView: false,
             playMode: 'sequence',
@@ -550,10 +551,22 @@ export default {
         toggleMobileLyricsFullscreen() {
             if (!this.isMobileViewport()) return
 
-            this.mobileLyricsFullscreen = !this.mobileLyricsFullscreen
             if (this.mobileLyricsFullscreen) {
-                this.scrollActiveLyric('auto')
+                if (this.mobileLyricsHistoryActive) {
+                    window.history.back()
+                    return
+                }
+                this.mobileLyricsFullscreen = false
+                return
             }
+
+            this.mobileLyricsFullscreen = true
+            window.history.pushState({
+                ...(window.history.state || {}),
+                lazyMonkeyMobileLyrics: true
+            }, '', window.location.href)
+            this.mobileLyricsHistoryActive = true
+            this.scrollActiveLyric('auto')
         },
         pushMobilePlayerHistory() {
             if (!this.isMobileViewport() || !this.currentSong || !this.mobilePlayerOpen || this.mobilePlayerHistoryActive) return
@@ -565,6 +578,12 @@ export default {
             this.mobilePlayerHistoryActive = true
         },
         handleMobilePlayerPopState() {
+            if (this.mobileLyricsHistoryActive) {
+                this.mobileLyricsHistoryActive = false
+                this.mobileLyricsFullscreen = false
+                return
+            }
+
             if (!this.mobilePlayerHistoryActive) return
 
             this.mobilePlayerHistoryActive = false
