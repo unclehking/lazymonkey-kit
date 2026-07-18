@@ -73,6 +73,18 @@
                 'mobile-lyrics-fullscreen': mobileLyricsFullscreen
             }"
         >
+            <div
+                class="mobile-music-visualizer"
+                :class="{ playing: isAudioPlaying, live: visualizerHasLiveData }"
+                :style="visualizerStyle"
+                aria-hidden="true"
+            >
+                <span
+                    v-for="bar in visualizerBars"
+                    :key="bar.index"
+                    :style="bar.style"
+                ><i></i></span>
+            </div>
             <div class="mobile-player-top">
                 <button type="button" class="mobile-icon-btn" title="返回" @click="closeMobilePlayer">
                     <span class="mobile-back-icon" aria-hidden="true"></span>
@@ -189,14 +201,14 @@
                 </div>
             </div>
             <div class="mobile-transport">
-                <button type="button" class="mobile-nav-btn" title="上一曲" @click="playPreviousSong">
+                <button type="button" class="mobile-nav-btn" title="上一曲" @click.stop="playPreviousSong">
                     <span class="prev-track-icon" aria-hidden="true"></span>
                 </button>
-                <button type="button" class="mobile-play-btn" :title="isAudioPlaying ? '暂停播放' : '播放音乐'" @click="toggleAudioPlayback">
+                <button type="button" class="mobile-play-btn" :title="isAudioPlaying ? '暂停播放' : '播放音乐'" @click.stop="toggleAudioPlayback">
                     <span v-if="isAudioPlaying" class="pause-icon"></span>
                     <span v-else class="play-icon"></span>
                 </button>
-                <button type="button" class="mobile-nav-btn" title="下一曲" @click="playNextSong">
+                <button type="button" class="mobile-nav-btn" title="下一曲" @click.stop="playNextSong">
                     <span class="next-track-icon" aria-hidden="true"></span>
                 </button>
             </div>
@@ -300,6 +312,7 @@ const PLAY_MODE_LABELS = {
     random: '随机播放',
     loop: '单曲循环'
 }
+const visualizerRuntime = new WeakMap()
 const CACHE_KEYS = {
     keyword: 'lazy-monkey-mp3-keyword',
     playMode: 'lazy-monkey-mp3-play-mode'
@@ -313,6 +326,7 @@ export default {
             results: [],
             currentSong: null,
             isAudioPlaying: false,
+            visualizerHasLiveData: false,
             audioCurrentTime: 0,
             audioDuration: 0,
             loading: false,
@@ -383,6 +397,7 @@ export default {
         window.removeEventListener('popstate', this.handleMobilePlayerPopState)
         this.clearMediaSession()
         this.closePlayerPip()
+        this.destroyMusicVisualizer()
         this.stopLyricsResize()
         this.resetPageTitle()
     },
@@ -444,6 +459,46 @@ export default {
         },
         showMobileNowPlayingBar() {
             return Boolean(this.currentSong && !this.mobilePlayerOpen && this.isCurrentSongOutOfView)
+        },
+        visualizerSeed() {
+            const identity = `${this.currentSong?.sourceId || ''}|${this.currentSong?.title || ''}`
+            let hash = 2166136261
+            for (let index = 0; index < identity.length; index++) {
+                hash ^= identity.charCodeAt(index)
+                hash = Math.imul(hash, 16777619)
+            }
+            return hash >>> 0
+        },
+        visualizerStyle() {
+            return {
+                '--visualizer-hue': String(this.visualizerSeed % 360)
+            }
+        },
+        visualizerBars() {
+            let state = this.visualizerSeed || 1
+            const nextValue = () => {
+                state = (Math.imul(state, 1664525) + 1013904223) >>> 0
+                return state / 4294967296
+            }
+
+            return Array.from({ length: 28 }, (_, index) => {
+                const height = 22 + nextValue() * 74
+                const duration = 0.58 + nextValue() * 0.92
+                const delay = -(nextValue() * duration)
+                const lowScale = 0.12 + nextValue() * 0.28
+                const drift = (nextValue() - 0.5) * 12
+
+                return {
+                    index,
+                    style: {
+                        '--visualizer-height': `${height.toFixed(1)}%`,
+                        '--visualizer-duration': `${duration.toFixed(2)}s`,
+                        '--visualizer-delay': `${delay.toFixed(2)}s`,
+                        '--visualizer-low-scale': lowScale.toFixed(2),
+                        '--visualizer-drift': `${drift.toFixed(1)}px`
+                    }
+                }
+            })
         },
         playerCoverStyle() {
             const cover = this.currentSong?.pic || this.defaultCover
@@ -677,12 +732,121 @@ export default {
         },
         handleAudioPlay() {
             this.isAudioPlaying = true
+            this.startMusicVisualizer()
             this.updateMediaSessionPlaybackState('playing')
             this.syncLyricTitle()
         },
         handleAudioPause() {
             this.isAudioPlaying = false
+            this.stopMusicVisualizer()
             this.updateMediaSessionPlaybackState('paused')
+        },
+        async startMusicVisualizer() {
+            if (!this.isMobileViewport() || !this.$refs.audioPlayer) return
+
+            let runtime = visualizerRuntime.get(this)
+            if (!runtime) {
+                runtime = this.createMusicVisualizerRuntime()
+                if (!runtime) return
+                visualizerRuntime.set(this, runtime)
+            }
+
+            try {
+                await runtime.audioContext.resume()
+            } catch (error) {
+                return
+            }
+
+            if (!runtime.animationFrame) {
+                this.drawMusicVisualizerFrame(runtime)
+            }
+        },
+        createMusicVisualizerRuntime() {
+            const audio = this.$refs.audioPlayer
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext
+            if (!audio || !AudioContextClass) return null
+
+            const audioContext = new AudioContextClass()
+            const analyser = audioContext.createAnalyser()
+            analyser.fftSize = 256
+            analyser.smoothingTimeConstant = 0.72
+
+            try {
+                const captureStream = audio.captureStream || audio.mozCaptureStream
+                let source
+                if (captureStream) {
+                    source = audioContext.createMediaStreamSource(captureStream.call(audio))
+                } else {
+                    const audioUrl = new URL(audio.currentSrc || audio.src, window.location.href)
+                    if (audioUrl.origin !== window.location.origin) {
+                        audioContext.close()
+                        return null
+                    }
+                    source = audioContext.createMediaElementSource(audio)
+                    source.connect(audioContext.destination)
+                }
+                source.connect(analyser)
+
+                return {
+                    audioContext,
+                    analyser,
+                    source,
+                    frequencyData: new Uint8Array(analyser.frequencyBinCount),
+                    peaks: new Array(this.visualizerBars.length).fill(0),
+                    animationFrame: 0
+                }
+            } catch (error) {
+                audioContext.close()
+                return null
+            }
+        },
+        drawMusicVisualizerFrame(runtime) {
+            runtime.animationFrame = window.requestAnimationFrame(() => {
+                runtime.animationFrame = 0
+                if (!this.isAudioPlaying) return
+
+                runtime.analyser.getByteFrequencyData(runtime.frequencyData)
+                const bars = this.$refs.player?.querySelectorAll('.mobile-music-visualizer span') || []
+                const barCount = Math.min(bars.length, runtime.frequencyData.length)
+                let hasSignal = false
+
+                for (let index = 0; index < barCount; index++) {
+                    const value = runtime.frequencyData[index]
+                    if (value > 2) hasSignal = true
+
+                    runtime.peaks[index] = Math.max(value + 4, runtime.peaks[index] - 1)
+                    const scale = Math.max(0.06, value / 255)
+                    const peakPosition = Math.min(100, runtime.peaks[index] / 255 * 100)
+                    bars[index].style.setProperty('--visualizer-live-scale', scale.toFixed(3))
+                    bars[index].style.setProperty('--visualizer-peak-position', `${peakPosition.toFixed(1)}%`)
+                }
+
+                if (hasSignal && !this.visualizerHasLiveData) {
+                    this.visualizerHasLiveData = true
+                }
+                this.drawMusicVisualizerFrame(runtime)
+            })
+        },
+        stopMusicVisualizer() {
+            const runtime = visualizerRuntime.get(this)
+            if (!runtime) return
+
+            if (runtime.animationFrame) {
+                window.cancelAnimationFrame(runtime.animationFrame)
+                runtime.animationFrame = 0
+            }
+            runtime.audioContext.suspend().catch(() => {})
+        },
+        destroyMusicVisualizer() {
+            const runtime = visualizerRuntime.get(this)
+            if (!runtime) return
+
+            if (runtime.animationFrame) {
+                window.cancelAnimationFrame(runtime.animationFrame)
+            }
+            runtime.audioContext.close().catch(() => {})
+            visualizerRuntime.delete(this)
+            this.visualizerHasLiveData = false
         },
         handleCarMediaCommand(event) {
             const command = event?.detail?.command
@@ -1595,7 +1759,8 @@ button:disabled {
 
 .mobile-player-top,
 .mobile-song-meta,
-.mobile-transport {
+.mobile-transport,
+.mobile-music-visualizer {
     display: none;
 }
 
@@ -2344,6 +2509,127 @@ button:disabled {
             linear-gradient(180deg, rgba(36, 28, 45, 0.18), rgba(24, 23, 34, 0.72));
     }
 
+    .mobile-music-visualizer {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 0;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 3px;
+        height: 30%;
+        padding: 0 10px;
+        opacity: 0.15;
+        overflow: hidden;
+        pointer-events: none;
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 30%, #000);
+        mask-image: linear-gradient(to bottom, transparent, #000 30%, #000);
+    }
+
+    .mobile-music-visualizer,
+    .mobile-music-visualizer * {
+        pointer-events: none !important;
+    }
+
+    .mobile-music-visualizer::before {
+        content: '';
+        position: absolute;
+        right: 0;
+        bottom: -35%;
+        left: 0;
+        height: 120%;
+        background: radial-gradient(
+            ellipse at 50% 100%,
+            hsla(var(--visualizer-hue), 88%, 68%, 0.52),
+            transparent 68%
+        );
+        filter: blur(18px);
+    }
+
+    .mobile-music-visualizer span {
+        position: relative;
+        flex: 1 1 0;
+        max-width: 14px;
+        height: var(--visualizer-height);
+        border-radius: 999px 999px 2px 2px;
+        background: linear-gradient(
+            to top,
+            hsla(var(--visualizer-hue), 92%, 58%, 0.72),
+            hsla(calc(var(--visualizer-hue) + 52), 96%, 78%, 0.95)
+        );
+        box-shadow: 0 0 12px hsla(var(--visualizer-hue), 95%, 70%, 0.46);
+        transform: scaleY(var(--visualizer-low-scale));
+        transform-origin: 50% 100%;
+        animation: mobileMusicPulse var(--visualizer-duration) ease-in-out var(--visualizer-delay) infinite alternate;
+        animation-play-state: paused;
+    }
+
+    .mobile-music-visualizer span i {
+        display: none;
+    }
+
+    .mobile-music-visualizer.playing span {
+        animation-play-state: running;
+    }
+
+    .mobile-music-visualizer.live span {
+        height: 100%;
+        animation: none;
+        background: none;
+        box-shadow: none;
+        transform: none;
+    }
+
+    .mobile-music-visualizer.live span::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 999px 999px 2px 2px;
+        background: linear-gradient(
+            to top,
+            hsla(var(--visualizer-hue), 92%, 58%, 0.72),
+            hsla(calc(var(--visualizer-hue) + 52), 96%, 78%, 0.95)
+        );
+        box-shadow: 0 0 12px hsla(var(--visualizer-hue), 95%, 70%, 0.46);
+        transform: scaleY(var(--visualizer-live-scale, 0.06));
+        transform-origin: 50% 100%;
+    }
+
+    .mobile-music-visualizer.live span i {
+        position: absolute;
+        right: 0;
+        bottom: var(--visualizer-peak-position, 0%);
+        left: 0;
+        display: block;
+        height: 4px;
+        border-radius: 999px;
+        background: hsla(calc(var(--visualizer-hue) + 52), 96%, 84%, 0.96);
+        box-shadow: 0 0 8px hsla(var(--visualizer-hue), 95%, 74%, 0.72);
+        transform: translateY(50%);
+    }
+
+    .mobile-player-top,
+    .disc-controls,
+    .mobile-song-meta,
+    .player-info,
+    .mobile-transport {
+        z-index: 1;
+    }
+
+    @keyframes mobileMusicPulse {
+        0% {
+            transform: translateX(0) scaleY(var(--visualizer-low-scale));
+        }
+        55% {
+            transform: translateX(var(--visualizer-drift)) scaleY(1);
+        }
+        100% {
+            transform: translateX(0) scaleY(0.46);
+        }
+    }
+
     .mobile-player-top {
         order: 1;
         display: grid;
@@ -2633,11 +2919,15 @@ button:disabled {
         right: 0;
         bottom: 30px;
         left: 0;
+        z-index: 20;
         margin-top: 0;
+        pointer-events: auto;
     }
 
     .mobile-nav-btn,
     .mobile-play-btn {
+        position: relative;
+        z-index: 1;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -2646,6 +2936,8 @@ button:disabled {
         background: rgba(255, 255, 255, 0.08);
         color: #fff;
         padding: 0;
+        pointer-events: auto;
+        touch-action: manipulation;
     }
 
     .mobile-nav-btn:active {
@@ -2663,6 +2955,11 @@ button:disabled {
         height: 76px;
         background: rgba(130, 143, 205, 0.72);
         box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+    }
+
+    .mobile-play-btn:active {
+        border-color: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 0 0 3px rgba(159, 177, 255, 0.42), 0 10px 28px rgba(0, 0, 0, 0.24);
     }
 
     .mobile-play-btn .play-icon {
@@ -2742,8 +3039,16 @@ button:disabled {
 
     .player.pip-player .mobile-player-top,
     .player.pip-player .mobile-song-meta,
-    .player.pip-player .mobile-transport {
+    .player.pip-player .mobile-transport,
+    .player.pip-player .mobile-music-visualizer {
         display: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .mobile-music-visualizer span {
+            animation: none;
+            transform: scaleY(0.42);
+        }
     }
 
     .player.pip-player .player-main {
