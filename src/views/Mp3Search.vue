@@ -486,7 +486,6 @@ export default {
                 const duration = 0.58 + nextValue() * 0.92
                 const delay = -(nextValue() * duration)
                 const lowScale = 0.12 + nextValue() * 0.28
-                const drift = (nextValue() - 0.5) * 12
 
                 return {
                     index,
@@ -494,8 +493,7 @@ export default {
                         '--visualizer-height': `${height.toFixed(1)}%`,
                         '--visualizer-duration': `${duration.toFixed(2)}s`,
                         '--visualizer-delay': `${delay.toFixed(2)}s`,
-                        '--visualizer-low-scale': lowScale.toFixed(2),
-                        '--visualizer-drift': `${drift.toFixed(1)}px`
+                        '--visualizer-low-scale': lowScale.toFixed(2)
                     }
                 }
             })
@@ -1119,16 +1117,30 @@ export default {
             await this.playNextSong()
         },
         async playNextSong() {
-            const playableSongs = this.results.filter((song) => song.sourceId)
+            if (this.playMode === 'random') {
+                await this.playRandomSong(this.results)
+                return
+            }
+
+            let playableSongs = this.results.filter((song) => song.sourceId)
             if (!playableSongs.length) {
                 this.showToast('当前列表没有可顺序播放的歌曲')
                 return
             }
 
-            const currentIndex = playableSongs.findIndex((song) => this.isCurrentSong(song))
-            const nextSong = playableSongs[currentIndex + 1]
+            let currentIndex = playableSongs.findIndex((song) => this.isCurrentSong(song))
+            let nextSong = playableSongs[currentIndex + 1]
+            const isLastLoadedSong = currentIndex === playableSongs.length - 1
+
+            if (!nextSong && isLastLoadedSong && this.hasSearched && this.hasMoreResults) {
+                await this.loadMoreSongs()
+                playableSongs = this.results.filter((song) => song.sourceId)
+                currentIndex = playableSongs.findIndex((song) => this.isCurrentSong(song))
+                nextSong = playableSongs[currentIndex + 1]
+            }
+
             if (!nextSong) {
-                this.showMessage('当前列表已播放完毕。')
+                this.showToast('暂无下一曲')
                 this.resetPageTitle()
                 return
             }
@@ -2620,13 +2632,13 @@ button:disabled {
 
     @keyframes mobileMusicPulse {
         0% {
-            transform: translateX(0) scaleY(var(--visualizer-low-scale));
+            transform: scaleY(var(--visualizer-low-scale));
         }
         55% {
-            transform: translateX(var(--visualizer-drift)) scaleY(1);
+            transform: scaleY(1);
         }
         100% {
-            transform: translateX(0) scaleY(0.46);
+            transform: scaleY(0.46);
         }
     }
 
@@ -2846,7 +2858,7 @@ button:disabled {
     }
 
     .player.mobile-lyrics-fullscreen .mobile-lyric-line.active {
-        color: #fff;
+        color: #9fb1ff;
         font-size: 22px;
         opacity: 1;
     }
