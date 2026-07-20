@@ -713,6 +713,12 @@ export default {
                 visualizerRuntime.set(this, runtime)
             }
 
+            if (runtime.isDecaying && runtime.animationFrame) {
+                window.cancelAnimationFrame(runtime.animationFrame)
+                runtime.animationFrame = 0
+                runtime.isDecaying = false
+            }
+
             try {
                 await runtime.audioContext.resume()
             } catch (error) {
@@ -754,6 +760,7 @@ export default {
                     source,
                     frequencyData: new Uint8Array(analyser.frequencyBinCount),
                     peaks: new Array(50).fill(4),
+                    isDecaying: false,
                     animationFrame: 0
                 }
             } catch (error) {
@@ -766,9 +773,40 @@ export default {
                 runtime.animationFrame = 0
                 if (!this.isAudioPlaying) return
 
+                runtime.isDecaying = false
                 runtime.analyser.getByteFrequencyData(runtime.frequencyData)
                 this.paintMusicVisualizer(runtime)
                 this.drawMusicVisualizerFrame(runtime)
+            })
+        },
+        drawMusicVisualizerDecayFrame(runtime) {
+            runtime.isDecaying = true
+            runtime.animationFrame = window.requestAnimationFrame(() => {
+                runtime.animationFrame = 0
+                if (this.isAudioPlaying) {
+                    runtime.isDecaying = false
+                    this.drawMusicVisualizerFrame(runtime)
+                    return
+                }
+
+                let barsAtRest = true
+                for (let index = 0; index < runtime.frequencyData.length; index++) {
+                    const nextValue = runtime.frequencyData[index] * 0.9
+                    runtime.frequencyData[index] = nextValue < 1 ? 0 : nextValue
+                    if (runtime.frequencyData[index] > 0) barsAtRest = false
+                }
+
+                this.paintMusicVisualizer(runtime)
+                const peakFloor = runtime.peakFloor || 4
+                const peaksAtRest = runtime.peaks.every((peak) => peak <= peakFloor)
+                if (barsAtRest && peaksAtRest) {
+                    runtime.isDecaying = false
+                    runtime.frequencyData.fill(0)
+                    runtime.peaks.fill(0)
+                    this.clearMusicVisualizer()
+                    return
+                }
+                this.drawMusicVisualizerDecayFrame(runtime)
             })
         },
         paintMusicVisualizer(runtime) {
@@ -791,6 +829,7 @@ export default {
             const barWidth = Math.max(pixelRatio, (width - gap * (barCount - 1)) / barCount)
             const floatHeight = 4 * pixelRatio
             const dropDistance = 1 * pixelRatio
+            runtime.peakFloor = floatHeight
             const amplitudeScale = Math.max(0.55, (height - floatHeight) / 255)
             const hue = this.visualizerSeed % 360
             const gradient = context.createLinearGradient(0, height * 0.15, 0, height)
@@ -805,8 +844,11 @@ export default {
 
                 context.fillStyle = gradient
                 context.fillRect(x, height - barHeight, barWidth, barHeight)
-                context.fillStyle = `hsla(${(hue + 52) % 360}, 96%, 84%, 0.96)`
-                context.fillRect(x, height - runtime.peaks[index], barWidth, floatHeight)
+                const peakHasNotLanded = !runtime.isDecaying || runtime.peaks[index] > floatHeight
+                if (peakHasNotLanded) {
+                    context.fillStyle = `hsla(${(hue + 52) % 360}, 96%, 84%, 0.96)`
+                    context.fillRect(x, height - runtime.peaks[index], barWidth, floatHeight)
+                }
             }
         },
         clearMusicVisualizer() {
@@ -823,7 +865,7 @@ export default {
                 runtime.animationFrame = 0
             }
             runtime.audioContext.suspend().catch(() => {})
-            this.clearMusicVisualizer()
+            this.drawMusicVisualizerDecayFrame(runtime)
         },
         destroyMusicVisualizer() {
             const runtime = visualizerRuntime.get(this)
@@ -2530,7 +2572,7 @@ button:disabled {
         z-index: 0;
         display: block;
         height: 32%;
-        opacity: 0.34;
+        opacity: 0.25;
         overflow: hidden;
         pointer-events: none;
         -webkit-mask-image: linear-gradient(to bottom, transparent, #000 30%, #000);
