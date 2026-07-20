@@ -75,15 +75,9 @@
         >
             <div
                 class="mobile-music-visualizer"
-                :class="{ playing: isAudioPlaying, live: visualizerHasLiveData }"
-                :style="visualizerStyle"
                 aria-hidden="true"
             >
-                <span
-                    v-for="bar in visualizerBars"
-                    :key="bar.index"
-                    :style="bar.style"
-                ><i></i></span>
+                <canvas ref="musicVisualizerCanvas"></canvas>
             </div>
             <div class="mobile-player-top">
                 <button type="button" class="mobile-icon-btn" title="返回" @click="closeMobilePlayer">
@@ -326,7 +320,6 @@ export default {
             results: [],
             currentSong: null,
             isAudioPlaying: false,
-            visualizerHasLiveData: false,
             audioCurrentTime: 0,
             audioDuration: 0,
             loading: false,
@@ -468,35 +461,6 @@ export default {
                 hash = Math.imul(hash, 16777619)
             }
             return hash >>> 0
-        },
-        visualizerStyle() {
-            return {
-                '--visualizer-hue': String(this.visualizerSeed % 360)
-            }
-        },
-        visualizerBars() {
-            let state = this.visualizerSeed || 1
-            const nextValue = () => {
-                state = (Math.imul(state, 1664525) + 1013904223) >>> 0
-                return state / 4294967296
-            }
-
-            return Array.from({ length: 28 }, (_, index) => {
-                const height = 22 + nextValue() * 74
-                const duration = 0.58 + nextValue() * 0.92
-                const delay = -(nextValue() * duration)
-                const lowScale = 0.12 + nextValue() * 0.28
-
-                return {
-                    index,
-                    style: {
-                        '--visualizer-height': `${height.toFixed(1)}%`,
-                        '--visualizer-duration': `${duration.toFixed(2)}s`,
-                        '--visualizer-delay': `${delay.toFixed(2)}s`,
-                        '--visualizer-low-scale': lowScale.toFixed(2)
-                    }
-                }
-            })
         },
         playerCoverStyle() {
             const cover = this.currentSong?.pic || this.defaultCover
@@ -767,30 +731,29 @@ export default {
             const audioContext = new AudioContextClass()
             const analyser = audioContext.createAnalyser()
             analyser.fftSize = 256
-            analyser.smoothingTimeConstant = 0.72
+            analyser.smoothingTimeConstant = 0.68
+            analyser.minDecibels = -90
+            analyser.maxDecibels = -10
 
             try {
-                const captureStream = audio.captureStream || audio.mozCaptureStream
-                let source
-                if (captureStream) {
-                    source = audioContext.createMediaStreamSource(captureStream.call(audio))
-                } else {
-                    const audioUrl = new URL(audio.currentSrc || audio.src, window.location.href)
-                    if (audioUrl.origin !== window.location.origin) {
-                        audioContext.close()
-                        return null
-                    }
-                    source = audioContext.createMediaElementSource(audio)
-                    source.connect(audioContext.destination)
+                const audioUrl = new URL(audio.currentSrc || audio.src, window.location.href)
+                if (audioUrl.origin !== window.location.origin) {
+                    audioContext.close()
+                    return null
                 }
+
+                // 音频已经由本站代理为同源资源。直接绑定媒体元素比 captureStream
+                // 在移动端 WebView 中稳定，后者可能在 play 事件发生时仍没有音轨。
+                const source = audioContext.createMediaElementSource(audio)
                 source.connect(analyser)
+                analyser.connect(audioContext.destination)
 
                 return {
                     audioContext,
                     analyser,
                     source,
                     frequencyData: new Uint8Array(analyser.frequencyBinCount),
-                    peaks: new Array(this.visualizerBars.length).fill(0),
+                    peaks: new Array(50).fill(4),
                     animationFrame: 0
                 }
             } catch (error) {
@@ -804,26 +767,52 @@ export default {
                 if (!this.isAudioPlaying) return
 
                 runtime.analyser.getByteFrequencyData(runtime.frequencyData)
-                const bars = this.$refs.player?.querySelectorAll('.mobile-music-visualizer span') || []
-                const barCount = Math.min(bars.length, runtime.frequencyData.length)
-                let hasSignal = false
-
-                for (let index = 0; index < barCount; index++) {
-                    const value = runtime.frequencyData[index]
-                    if (value > 2) hasSignal = true
-
-                    runtime.peaks[index] = Math.max(value + 4, runtime.peaks[index] - 1)
-                    const scale = Math.max(0.06, value / 255)
-                    const peakPosition = Math.min(100, runtime.peaks[index] / 255 * 100)
-                    bars[index].style.setProperty('--visualizer-live-scale', scale.toFixed(3))
-                    bars[index].style.setProperty('--visualizer-peak-position', `${peakPosition.toFixed(1)}%`)
-                }
-
-                if (hasSignal && !this.visualizerHasLiveData) {
-                    this.visualizerHasLiveData = true
-                }
+                this.paintMusicVisualizer(runtime)
                 this.drawMusicVisualizerFrame(runtime)
             })
+        },
+        paintMusicVisualizer(runtime) {
+            const canvas = this.$refs.musicVisualizerCanvas
+            const context = canvas?.getContext('2d')
+            if (!canvas || !context) return
+
+            const rect = canvas.getBoundingClientRect()
+            const pixelRatio = Math.min(window.devicePixelRatio || 1, 2)
+            const width = Math.max(1, Math.round(rect.width * pixelRatio))
+            const height = Math.max(1, Math.round(rect.height * pixelRatio))
+            if (canvas.width !== width || canvas.height !== height) {
+                canvas.width = width
+                canvas.height = height
+            }
+
+            context.clearRect(0, 0, width, height)
+            const barCount = Math.min(50, runtime.frequencyData.length)
+            const gap = 2 * pixelRatio
+            const barWidth = Math.max(pixelRatio, (width - gap * (barCount - 1)) / barCount)
+            const floatHeight = 4 * pixelRatio
+            const dropDistance = 1 * pixelRatio
+            const amplitudeScale = Math.max(0.55, (height - floatHeight) / 255)
+            const hue = this.visualizerSeed % 360
+            const gradient = context.createLinearGradient(0, height * 0.15, 0, height)
+            gradient.addColorStop(0, `hsla(${(hue + 52) % 360}, 96%, 78%, 0.96)`)
+            gradient.addColorStop(0.5, `hsla(${hue}, 88%, 62%, 0.86)`)
+            gradient.addColorStop(1, `hsla(${(hue + 20) % 360}, 92%, 52%, 0.7)`)
+
+            for (let index = 0; index < barCount; index++) {
+                const x = index * (barWidth + gap)
+                const barHeight = runtime.frequencyData[index] * amplitudeScale
+                runtime.peaks[index] = Math.max(barHeight + floatHeight, runtime.peaks[index] - dropDistance)
+
+                context.fillStyle = gradient
+                context.fillRect(x, height - barHeight, barWidth, barHeight)
+                context.fillStyle = `hsla(${(hue + 52) % 360}, 96%, 84%, 0.96)`
+                context.fillRect(x, height - runtime.peaks[index], barWidth, floatHeight)
+            }
+        },
+        clearMusicVisualizer() {
+            const canvas = this.$refs.musicVisualizerCanvas
+            const context = canvas?.getContext('2d')
+            if (canvas && context) context.clearRect(0, 0, canvas.width, canvas.height)
         },
         stopMusicVisualizer() {
             const runtime = visualizerRuntime.get(this)
@@ -834,6 +823,7 @@ export default {
                 runtime.animationFrame = 0
             }
             runtime.audioContext.suspend().catch(() => {})
+            this.clearMusicVisualizer()
         },
         destroyMusicVisualizer() {
             const runtime = visualizerRuntime.get(this)
@@ -844,7 +834,7 @@ export default {
             }
             runtime.audioContext.close().catch(() => {})
             visualizerRuntime.delete(this)
-            this.visualizerHasLiveData = false
+            this.clearMusicVisualizer()
         },
         handleCarMediaCommand(event) {
             const command = event?.detail?.command
@@ -1308,6 +1298,17 @@ export default {
                 title: cleanText
             }
         },
+        proxyAudioUrl(url) {
+            if (!url) return ''
+
+            try {
+                const target = new URL(url, window.location.href)
+                if (target.origin === window.location.origin) return target.href
+                return `/audio-proxy?url=${encodeURIComponent(target.href)}`
+            } catch (error) {
+                return url
+            }
+        },
         playSongFromItem(song, event) {
             const isMobile = window.matchMedia?.('(max-width: 768px)').matches
             if (!isMobile || song.loading || event.target.closest('button')) return
@@ -1354,7 +1355,7 @@ export default {
                     sourceId: song.sourceId,
                     title: data.title || `${song.singer} - ${song.title}`,
                     pic: data.pic || song.pic,
-                    audioUrl: data.url,
+                    audioUrl: this.proxyAudioUrl(data.url),
                     lrcUrl: data.lrc || ''
                 }
                 this.updateMediaSessionMetadata()
@@ -2527,13 +2528,9 @@ button:disabled {
         bottom: 0;
         left: 0;
         z-index: 0;
-        display: flex;
-        align-items: flex-end;
-        justify-content: center;
-        gap: 3px;
-        height: 30%;
-        padding: 0 10px;
-        opacity: 0.15;
+        display: block;
+        height: 32%;
+        opacity: 0.34;
         overflow: hidden;
         pointer-events: none;
         -webkit-mask-image: linear-gradient(to bottom, transparent, #000 30%, #000);
@@ -2545,81 +2542,10 @@ button:disabled {
         pointer-events: none !important;
     }
 
-    .mobile-music-visualizer::before {
-        content: '';
-        position: absolute;
-        right: 0;
-        bottom: -35%;
-        left: 0;
-        height: 120%;
-        background: radial-gradient(
-            ellipse at 50% 100%,
-            hsla(var(--visualizer-hue), 88%, 68%, 0.52),
-            transparent 68%
-        );
-        filter: blur(18px);
-    }
-
-    .mobile-music-visualizer span {
-        position: relative;
-        flex: 1 1 0;
-        max-width: 14px;
-        height: var(--visualizer-height);
-        border-radius: 999px 999px 2px 2px;
-        background: linear-gradient(
-            to top,
-            hsla(var(--visualizer-hue), 92%, 58%, 0.72),
-            hsla(calc(var(--visualizer-hue) + 52), 96%, 78%, 0.95)
-        );
-        box-shadow: 0 0 12px hsla(var(--visualizer-hue), 95%, 70%, 0.46);
-        transform: scaleY(var(--visualizer-low-scale));
-        transform-origin: 50% 100%;
-        animation: mobileMusicPulse var(--visualizer-duration) ease-in-out var(--visualizer-delay) infinite alternate;
-        animation-play-state: paused;
-    }
-
-    .mobile-music-visualizer span i {
-        display: none;
-    }
-
-    .mobile-music-visualizer.playing span {
-        animation-play-state: running;
-    }
-
-    .mobile-music-visualizer.live span {
-        height: 100%;
-        animation: none;
-        background: none;
-        box-shadow: none;
-        transform: none;
-    }
-
-    .mobile-music-visualizer.live span::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: 999px 999px 2px 2px;
-        background: linear-gradient(
-            to top,
-            hsla(var(--visualizer-hue), 92%, 58%, 0.72),
-            hsla(calc(var(--visualizer-hue) + 52), 96%, 78%, 0.95)
-        );
-        box-shadow: 0 0 12px hsla(var(--visualizer-hue), 95%, 70%, 0.46);
-        transform: scaleY(var(--visualizer-live-scale, 0.06));
-        transform-origin: 50% 100%;
-    }
-
-    .mobile-music-visualizer.live span i {
-        position: absolute;
-        right: 0;
-        bottom: var(--visualizer-peak-position, 0%);
-        left: 0;
+    .mobile-music-visualizer canvas {
         display: block;
-        height: 4px;
-        border-radius: 999px;
-        background: hsla(calc(var(--visualizer-hue) + 52), 96%, 84%, 0.96);
-        box-shadow: 0 0 8px hsla(var(--visualizer-hue), 95%, 74%, 0.72);
-        transform: translateY(50%);
+        width: 100%;
+        height: 100%;
     }
 
     .mobile-player-top,
@@ -3057,9 +2983,8 @@ button:disabled {
     }
 
     @media (prefers-reduced-motion: reduce) {
-        .mobile-music-visualizer span {
-            animation: none;
-            transform: scaleY(0.42);
+        .mobile-music-visualizer {
+            display: none;
         }
     }
 
