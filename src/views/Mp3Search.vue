@@ -1,8 +1,16 @@
 <template>
-    <div class="mp3-page" :class="{ 'has-mobile-now-playing': showMobileNowPlayingBar }">
+    <div
+        class="mp3-page"
+        :class="{ 'has-mobile-now-playing': showMobileNowPlayingBar }"
+        :inert="needVerify"
+        :aria-hidden="needVerify ? 'true' : null"
+    >
         <div class="toolbar">
             <div>
-                <h1>懒猴听歌</h1>
+                <h2>
+                    <router-link class="toolbox-home-link" to="/">懒猴工具箱</router-link>
+                    <span aria-hidden="true"> - </span><span>听歌</span>
+                </h2>
                 <p>
                     来源：好听音乐网
                     <a class="source-inline-link" href="https://www.thttt.com/" target="_blank" rel="noopener">thttt.com</a>
@@ -44,23 +52,38 @@
             {{ message }}
         </div>
 
-        <div v-if="needVerify" class="verify-dialog" role="dialog" aria-live="polite" aria-label="来源站安全验证">
-            <div class="verify-dialog-title">需要安全验证</div>
-            <div class="verify-dialog-text">来源站需要安全验证，请点击下方按钮在当前代理链路中完成验证。</div>
-            <div class="verify-actions">
-                <button type="button" class="verify-cancel-btn" :disabled="verifying" @click="cancelVerify">
-                    取消
-                </button>
-                <button
-                    type="button"
-                    class="verify-btn"
-                    :disabled="loading || verifying"
-                    @click="verifySource"
+        <Teleport to="body">
+            <div v-if="needVerify" class="verify-modal-layer">
+                <div
+                    ref="verifyDialog"
+                    class="verify-dialog"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="verify-dialog-title"
+                    aria-describedby="verify-dialog-description"
+                    tabindex="-1"
+                    @keydown="handleVerifyDialogKeydown"
                 >
-                    {{ verifying ? '验证中...' : '点击验证' }}
-                </button>
+                    <div id="verify-dialog-title" class="verify-dialog-title">需要安全验证</div>
+                    <div id="verify-dialog-description" class="verify-dialog-text">
+                        来源站需要安全验证，请点击下方按钮在当前代理链路中完成验证。
+                    </div>
+                    <div class="verify-actions">
+                        <button type="button" class="verify-cancel-btn" :disabled="verifying" @click="cancelVerify">
+                            取消
+                        </button>
+                        <button
+                            type="button"
+                            class="verify-btn"
+                            :disabled="loading || verifying"
+                            @click="verifySource"
+                        >
+                            {{ verifying ? '验证中...' : '点击验证' }}
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
+        </Teleport>
 
         <div v-if="currentSong" ref="playerHost" class="player-host">
         <div
@@ -284,6 +307,16 @@
                 </button>
             </div>
         </div>
+        <div v-else-if="loading" class="song-list skeleton-list" role="status" aria-label="歌曲列表加载中">
+            <div v-for="index in 6" :key="index" class="song-item song-skeleton" aria-hidden="true">
+                <span class="skeleton-block skeleton-cover"></span>
+                <span class="skeleton-copy">
+                    <span class="skeleton-block skeleton-title"></span>
+                    <span class="skeleton-block skeleton-meta"></span>
+                </span>
+                <span class="skeleton-block skeleton-action"></span>
+            </div>
+        </div>
 
         <div v-if="loadingMore" class="load-more-state">加载更多中...</div>
         <div v-else-if="hasSearched && results.length && !hasMoreResults" class="load-more-state">
@@ -307,6 +340,7 @@ const PLAY_MODE_LABELS = {
     loop: '单曲循环'
 }
 const visualizerRuntime = new WeakMap()
+const verifyModalState = new WeakMap()
 const CACHE_KEYS = {
     keyword: 'lazy-monkey-mp3-keyword',
     playMode: 'lazy-monkey-mp3-play-mode'
@@ -393,6 +427,8 @@ export default {
         this.destroyMusicVisualizer()
         this.stopLyricsResize()
         this.resetPageTitle()
+        document.body.classList.remove('verify-modal-open')
+        verifyModalState.delete(this)
     },
     watch: {
         keyword(value) {
@@ -400,6 +436,26 @@ export default {
         },
         playMode(value) {
             window.localStorage.setItem(CACHE_KEYS.playMode, value)
+        },
+        needVerify(isOpen) {
+            if (isOpen) {
+                const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+                verifyModalState.set(this, { returnFocus })
+                document.body.classList.add('verify-modal-open')
+                this.$nextTick(() => {
+                    const dialog = this.$refs.verifyDialog
+                    const primaryAction = dialog?.querySelector('.verify-btn:not(:disabled)')
+                    ;(primaryAction || dialog)?.focus()
+                })
+                return
+            }
+
+            document.body.classList.remove('verify-modal-open')
+            const modalState = verifyModalState.get(this)
+            verifyModalState.delete(this)
+            this.$nextTick(() => {
+                if (modalState?.returnFocus?.isConnected) modalState.returnFocus.focus()
+            })
         },
         results() {
             this.$nextTick(this.updateCurrentSongVisibility)
@@ -1253,6 +1309,32 @@ export default {
             this.verifyToken = ''
             this.message = ''
         },
+        handleVerifyDialogKeydown(event) {
+            if (event.key === 'Escape') {
+                if (!this.verifying) this.cancelVerify()
+                return
+            }
+            if (event.key !== 'Tab') return
+
+            const dialog = this.$refs.verifyDialog
+            if (!dialog) return
+            const focusableElements = Array.from(dialog.querySelectorAll('button:not(:disabled), [href], input:not(:disabled), [tabindex]:not([tabindex="-1"])'))
+            if (!focusableElements.length) {
+                event.preventDefault()
+                dialog.focus()
+                return
+            }
+
+            const firstElement = focusableElements[0]
+            const lastElement = focusableElements[focusableElements.length - 1]
+            if (event.shiftKey && (document.activeElement === firstElement || !dialog.contains(document.activeElement))) {
+                event.preventDefault()
+                lastElement.focus()
+            } else if (!event.shiftKey && document.activeElement === lastElement) {
+                event.preventDefault()
+                firstElement.focus()
+            }
+        },
         parseSongs(html) {
             const document = new DOMParser().parseFromString(html, 'text/html')
             const links = Array.from(document.querySelectorAll('a.url[href*="/mp3/"], .pic a[href*="/mp3/"]'))
@@ -1667,7 +1749,7 @@ export default {
     padding: 22px;
 }
 
-.toolbar h1,
+.toolbar h2,
 .toolbar p,
 .player h2,
 .song-info h3,
@@ -1675,8 +1757,23 @@ export default {
     margin: 0;
 }
 
-.toolbar h1 {
-    font-size: 26px;
+.toolbar h2 {
+    font-size: 18px;
+}
+
+.toolbox-home-link {
+    border-radius: 4px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.toolbox-home-link:hover {
+    color: #0065a0;
+}
+
+.toolbox-home-link:focus-visible {
+    outline: 2px solid #0065a0;
+    outline-offset: 3px;
 }
 
 .toolbar p {
@@ -2237,7 +2334,58 @@ button:disabled {
 }
 
 .song-item.playing {
-    border-color: #1f7a5b;
+    border-color: #0065a0;
+}
+
+.song-skeleton {
+    pointer-events: none;
+}
+
+.skeleton-block {
+    display: block;
+    background: linear-gradient(90deg, #e7ecf1 24%, #f7f9fb 42%, #e7ecf1 64%);
+    background-size: 300% 100%;
+    animation: skeleton-shimmer 1.45s ease-in-out infinite;
+}
+
+.skeleton-cover {
+    width: 56px;
+    height: 56px;
+    border-radius: 6px;
+}
+
+.skeleton-copy {
+    display: grid;
+    gap: 9px;
+    min-width: 0;
+}
+
+.skeleton-title {
+    width: min(84%, 180px);
+    height: 15px;
+    border-radius: 4px;
+}
+
+.skeleton-meta {
+    width: min(56%, 112px);
+    height: 11px;
+    border-radius: 4px;
+}
+
+.skeleton-action {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+}
+
+@keyframes skeleton-shimmer {
+    from {
+        background-position: 100% 0;
+    }
+
+    to {
+        background-position: 0 0;
+    }
 }
 
 .song-item img {
@@ -2303,7 +2451,7 @@ button:disabled {
 
 .song-item > button.playing-btn,
 .song-item > button.playing-btn:disabled {
-    background: #1f7a5b;
+    background: #0065a0;
     cursor: not-allowed;
     opacity: 1;
 }
@@ -2395,6 +2543,42 @@ button:disabled {
 }
 
 @media (max-width: 768px) {
+    :global(body.verify-modal-open) {
+        overflow: hidden;
+        overscroll-behavior: none;
+    }
+
+    .verify-modal-layer {
+        position: fixed;
+        inset: 0;
+        z-index: 1200;
+        display: grid;
+        place-items: center;
+        box-sizing: border-box;
+        padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+        background: rgba(20, 27, 38, 0.52);
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
+    }
+
+    .verify-modal-layer .verify-dialog {
+        position: relative;
+        top: auto;
+        left: auto;
+        z-index: auto;
+        width: min(340px, 100%);
+        box-sizing: border-box;
+        padding: 20px;
+        border-radius: 12px;
+        transform: none;
+        box-shadow: 0 22px 54px rgba(14, 22, 34, 0.3);
+    }
+
+    .verify-modal-layer button:focus-visible {
+        outline: 3px solid rgba(0, 101, 160, 0.34);
+        outline-offset: 3px;
+    }
+
     button {
         -webkit-tap-highlight-color: transparent;
     }
@@ -3176,6 +3360,11 @@ button:disabled {
         height: 54px;
     }
 
+    .skeleton-cover {
+        width: 54px;
+        height: 54px;
+    }
+
 }
 
 @media (max-width: 768px) and (max-height: 700px) {
@@ -3253,6 +3442,12 @@ button:disabled {
 
     .pip-btn {
         display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton-block {
+        animation: none;
     }
 }
 </style>
