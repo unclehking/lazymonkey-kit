@@ -18,6 +18,8 @@ pnpm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 .idea
+.claude/
+.agents/
 .DS_Store
 *.suo
 *.ntvs*
@@ -35,4 +37,4 @@ scripts/publish.js
 
 # Cache
 .cache
-.temp 
+.temp
