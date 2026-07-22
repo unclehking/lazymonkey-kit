@@ -295,8 +295,8 @@
         <div class="result-header">
             <h2>{{ hasSearched ? '搜索结果' : '热门推荐' }}</h2>
             <div class="result-actions">
-                <button class="plain-btn" type="button" :disabled="loading" @click="loadHomeSongs">
-                    换一批推荐
+                <button class="plain-btn" type="button" :disabled="loading" @click="loadRandomRecommendations">
+                    随机推荐
                 </button>
             </div>
         </div>
@@ -661,6 +661,10 @@ export default {
             this.hasSearched = false
             this.resetPagination()
             return await this.fetchSongList(`${SOURCE_PROXY}/`, '推荐加载失败，请稍后重试。')
+        },
+        async loadRandomRecommendations() {
+            this.keyword = ''
+            return await this.loadHomeSongs()
         },
         async searchMusic() {
             if (!this.keyword) {
@@ -1189,8 +1193,8 @@ export default {
                     this.results = songs
                 }
                 this.currentPage = page
-                this.nextPageUrl = pagination.nextPageUrl
-                this.hasMoreResults = this.hasSearched && Boolean(this.nextPageUrl)
+                this.nextPageUrl = this.hasSearched ? pagination.nextPageUrl : ''
+                this.hasMoreResults = this.hasSearched ? Boolean(this.nextPageUrl) : songs.length > 0
                 this.needVerify = false
                 this.verifyToken = ''
                 if (!append && !songs.length) {
@@ -1218,9 +1222,11 @@ export default {
             }
         },
         async loadMoreSongs() {
-            if (!this.hasSearched || this.loading || this.loadingMore || !this.hasMoreResults) return
+            if (this.loading || this.loadingMore || !this.hasMoreResults) return
 
-            const nextUrl = this.nextPageUrl || this.getSearchPageUrl(this.currentPage + 1)
+            const nextUrl = this.hasSearched
+                ? this.nextPageUrl || this.getSearchPageUrl(this.currentPage + 1)
+                : this.getRandomRecommendationUrl()
             if (!nextUrl) {
                 this.hasMoreResults = false
                 return
@@ -1233,7 +1239,7 @@ export default {
         },
         handlePageScroll() {
             this.updateCurrentSongVisibility()
-            if (!this.hasSearched || !this.results.length || !this.hasMoreResults || this.loading || this.loadingMore) return
+            if (!this.results.length || !this.hasMoreResults || this.loading || this.loadingMore) return
 
             const target = this.scrollContainer === window ? document.documentElement : this.scrollContainer
             const scrollTop = this.scrollContainer === window ? window.scrollY : target.scrollTop
@@ -1480,6 +1486,9 @@ export default {
             if (!this.hasSearched || !this.keyword || page <= 1) return ''
             const encodedKeyword = encodeURIComponent(this.keyword)
             return `${SOURCE_PROXY}/so/${encodedKeyword}-${page}.html`
+        },
+        getRandomRecommendationUrl() {
+            return `${SOURCE_PROXY}/?random=${Date.now()}`
         },
         normalizeProxyUrl(url, currentUrl = '') {
             if (!url) return ''
