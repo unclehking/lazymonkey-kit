@@ -598,6 +598,7 @@ export default {
             const dialog = this.$refs.disclaimerDialog
             if (!dialog) return
             const focusableElements = Array.from(dialog.querySelectorAll('button:not(:disabled), [href], [tabindex]:not([tabindex="-1"])'))
+                .filter((element) => element.offsetParent !== null)
             if (!focusableElements.length) {
                 event.preventDefault()
                 dialog.focus()
@@ -2952,6 +2953,24 @@ button:disabled {
     .verify-modal-layer button:focus-visible {
         outline: 3px solid rgba(0, 101, 160, 0.34);
         outline-offset: 3px;
+    }
+
+    .disclaimer-dialog-header {
+        justify-content: center;
+    }
+
+    .disclaimer-dialog-header h2 {
+        width: 100%;
+        text-align: center;
+    }
+
+    .disclaimer-close-icon {
+        display: none;
+    }
+
+    .disclaimer-actions,
+    .disclaimer-actions button {
+        width: 100%;
     }
 
     button {
