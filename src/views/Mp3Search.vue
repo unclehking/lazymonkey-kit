@@ -53,10 +53,6 @@
             <span class="mobile-now-playing-arrow" aria-hidden="true"></span>
         </button>
 
-        <div v-if="message && !needVerify" class="message" :class="{ error: messageType === 'error' }">
-            {{ message }}
-        </div>
-
         <Teleport to="body">
             <div v-if="disclaimerOpen" class="disclaimer-modal-layer" @click.self="closeDisclaimer">
                 <section
@@ -393,8 +389,6 @@ export default {
             audioCurrentTime: 0,
             audioDuration: 0,
             loading: false,
-            message: '',
-            messageType: 'info',
             disclaimerOpen: false,
             needVerify: false,
             verifyToken: '',
@@ -830,6 +824,13 @@ export default {
         pushMobilePlayerHistory() {
             if (!this.isMobileViewport() || !this.currentSong || !this.mobilePlayerOpen || this.mobilePlayerHistoryActive) return
 
+            // 页面刷新后浏览器会保留 history.state，但组件状态会重新初始化。
+            // 恢复播放记录时接管已有播放器 state，避免重复 push，同时保证返回键先关闭播放器。
+            if (window.history.state?.lazyMonkeyMobilePlayer) {
+                this.mobilePlayerHistoryActive = true
+                return
+            }
+
             window.history.pushState({
                 ...(window.history.state || {}),
                 lazyMonkeyMobilePlayer: true
@@ -928,7 +929,7 @@ export default {
 
             if (audio.paused || audio.ended) {
                 audio.play().catch(() => {
-                    this.showMessage('浏览器拦截了播放，请稍后再试。')
+                    this.showToast('浏览器拦截了播放，请稍后再试。')
                 })
             } else {
                 audio.pause()
@@ -1140,7 +1141,7 @@ export default {
             const audio = this.$refs.audioPlayer
             if (!audio || !audio.paused) return
             audio.play().catch(() => {
-                this.showMessage('浏览器拦截了播放，请稍后再试。')
+                this.showToast('浏览器拦截了播放，请稍后再试。')
             })
         },
         pauseAudio() {
@@ -1240,7 +1241,7 @@ export default {
             audio.play().catch(() => {
                 this.resumePlaybackRequested = false
                 this.persistPlaybackState(false)
-                this.showMessage('已恢复上次播放进度；浏览器阻止了自动播放，请点击播放继续。')
+                this.showToast('已恢复上次播放进度；浏览器阻止了自动播放，请点击播放继续。')
             })
         },
         handleAudioTimeUpdate() {
@@ -1281,7 +1282,6 @@ export default {
             } else {
                 this.loading = true
             }
-            this.message = ''
             this.needVerify = false
             if (!append) {
                 this.lastRequest = { url, errorText }
@@ -1308,7 +1308,7 @@ export default {
                     this.needVerify = Boolean(this.verifyToken)
                     this.hasMoreResults = false
                     if (!this.needVerify) {
-                        this.showMessage('来源站需要安全验证，但没有解析到验证令牌，请稍后重试。', 'error')
+                        this.showToast('来源站需要安全验证，但没有解析到验证令牌，请稍后重试。', 'error')
                     }
                     return null
                 }
@@ -1326,7 +1326,7 @@ export default {
                 this.needVerify = false
                 this.verifyToken = ''
                 if (!append && !songs.length) {
-                    this.showMessage('没有解析到歌曲，来源站可能调整了页面结构。', 'error')
+                    this.showToast('没有解析到歌曲，来源站可能调整了页面结构。', 'error')
                 } else if (append && !songs.length) {
                     this.hasMoreResults = false
                 }
@@ -1338,7 +1338,7 @@ export default {
                     this.hasMoreResults = false
                 }
                 const reason = error.name === 'AbortError' ? '请求超时' : error.message
-                this.showMessage(`${errorText}${reason ? `（${reason}）` : ''}`, 'error')
+                this.showToast(`${errorText}${reason ? `（${reason}）` : ''}`, 'error')
                 return null
             } finally {
                 window.clearTimeout(timer)
@@ -1471,12 +1471,11 @@ export default {
         },
         async verifySource() {
             if (!this.verifyToken) {
-                this.showMessage('没有找到验证令牌，请刷新后再试。', 'error')
+                this.showToast('没有找到验证令牌，请刷新后再试。', 'error')
                 return
             }
 
             this.verifying = true
-            this.message = ''
             const controller = new AbortController()
             const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
             try {
@@ -1502,7 +1501,7 @@ export default {
                 if (html.includes('安全人机验证')) {
                     this.verifyToken = this.getVerifyToken(html)
                     this.needVerify = Boolean(this.verifyToken)
-                    this.showMessage('验证没有通过，请再点一次验证按钮。', 'error')
+                    this.showToast('验证没有通过，请再点一次验证按钮。', 'error')
                     return
                 }
 
@@ -1516,7 +1515,7 @@ export default {
                 }
             } catch (error) {
                 const reason = error.name === 'AbortError' ? '请求超时' : error.message
-                this.showMessage(`验证失败，请稍后重试。${reason ? `（${reason}）` : ''}`, 'error')
+                this.showToast(`验证失败，请稍后重试。${reason ? `（${reason}）` : ''}`, 'error')
             } finally {
                 window.clearTimeout(timer)
                 this.verifying = false
@@ -1525,7 +1524,6 @@ export default {
         cancelVerify() {
             this.needVerify = false
             this.verifyToken = ''
-            this.message = ''
         },
         handleVerifyDialogKeydown(event) {
             if (event.key === 'Escape') {
@@ -1669,7 +1667,6 @@ export default {
 
             this.playbackRequestVersion += 1
             song.loading = true
-            this.message = ''
             const controller = new AbortController()
             const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
             try {
@@ -1712,12 +1709,12 @@ export default {
                     this.$refs.audioPlayer?.play?.().catch(() => {
                         this.resumePlaybackRequested = false
                         this.persistPlaybackState(false)
-                        this.showMessage('浏览器拦截了自动播放，请手动点击播放器播放。')
+                        this.showToast('浏览器拦截了自动播放，请手动点击播放器播放。')
                     })
                 })
             } catch (error) {
                 const reason = error.name === 'AbortError' ? '请求超时' : error.message
-                this.showMessage(`播放地址获取失败，可能是来源站限制访问。${reason ? `（${reason}）` : ''}`, 'error')
+                this.showToast(`播放地址获取失败，可能是来源站限制访问。${reason ? `（${reason}）` : ''}`, 'error')
             } finally {
                 window.clearTimeout(timer)
                 song.loading = false
@@ -1927,13 +1924,6 @@ export default {
         },
         isCurrentSong(song) {
             return Boolean(this.currentSong?.sourceId && song.sourceId === this.currentSong.sourceId)
-        },
-        showMessage(text, type = 'info') {
-            this.message = text
-            this.messageType = type
-            if (type === 'error') {
-                this.showToast(text, 'error')
-            }
         },
         showToast(text, type = 'info') {
             if (this.$toast?.[type]) {
@@ -2196,21 +2186,6 @@ export default {
 button:disabled {
     opacity: 0.55;
     cursor: not-allowed;
-}
-
-.message {
-    margin-top: 14px;
-    padding: 12px 14px;
-    background: #eef7fb;
-    border: 1px solid #cde9f3;
-    border-radius: 6px;
-    color: #23627a;
-}
-
-.message.error {
-    background: #fff2f2;
-    border-color: #ffd5d5;
-    color: #b23b3b;
 }
 
 .verify-dialog {
