@@ -440,8 +440,9 @@ export default {
         window.__carMediaCommandHandled = true
         this.exposeAppPlayerApi()
         window.addEventListener('resize', this.updateMobileLyricVisibleCount, { passive: true })
-        window.addEventListener('popstate', this.handleMobilePlayerPopState)
+        window.addEventListener('popstate', this.handleMusicPagePopState)
         window.addEventListener('pagehide', this.handlePageHide)
+        this.setupMusicPageHistoryGuard()
         this.setupMediaSession()
         this.updateMobileLyricVisibleCount()
         this.restorePlaybackState()
@@ -460,7 +461,7 @@ export default {
         window.__carMediaCommandHandled = false
         this.removeAppPlayerApi()
         window.removeEventListener('resize', this.updateMobileLyricVisibleCount)
-        window.removeEventListener('popstate', this.handleMobilePlayerPopState)
+        window.removeEventListener('popstate', this.handleMusicPagePopState)
         window.removeEventListener('pagehide', this.handlePageHide)
         this.clearMediaSession()
         this.closePlayerPip()
@@ -801,6 +802,33 @@ export default {
         isMobileViewport() {
             return window.matchMedia?.('(max-width: 768px)').matches
         },
+        setupMusicPageHistoryGuard() {
+            const currentState = window.history.state || {}
+            if (currentState.lazyMonkeyMusicPageGuard) return
+
+            const baseState = {
+                ...currentState,
+                lazyMonkeyMusicPage: true,
+                lazyMonkeyMusicPageGuard: false,
+                lazyMonkeyMobilePlayer: false,
+                lazyMonkeyMobileLyrics: false
+            }
+            window.history.replaceState(baseState, '', window.location.href)
+            window.history.pushState({
+                ...baseState,
+                lazyMonkeyMusicPageGuard: true
+            }, '', window.location.href)
+        },
+        restoreMusicPageHistoryGuard() {
+            const currentState = window.history.state || {}
+            if (currentState.lazyMonkeyMusicPageGuard) return
+
+            window.history.pushState({
+                ...currentState,
+                lazyMonkeyMusicPage: true,
+                lazyMonkeyMusicPageGuard: true
+            }, '', window.location.href)
+        },
         toggleMobileLyricsFullscreen() {
             if (!this.isMobileViewport()) return
 
@@ -837,21 +865,24 @@ export default {
             }, '', window.location.href)
             this.mobilePlayerHistoryActive = true
         },
-        handleMobilePlayerPopState() {
+        handleMusicPagePopState() {
             if (this.mobileLyricsHistoryActive) {
                 this.mobileLyricsHistoryActive = false
                 this.mobileLyricsFullscreen = false
                 return
             }
 
-            if (!this.mobilePlayerHistoryActive) return
-
-            this.mobilePlayerHistoryActive = false
-            if (this.mobilePlayerOpen) {
-                this.mobileLyricsFullscreen = false
-                this.mobilePlayerOpen = false
-                this.$nextTick(this.updateCurrentSongVisibility)
+            if (this.mobilePlayerHistoryActive) {
+                this.mobilePlayerHistoryActive = false
+                if (this.mobilePlayerOpen) {
+                    this.mobileLyricsFullscreen = false
+                    this.mobilePlayerOpen = false
+                    this.$nextTick(this.updateCurrentSongVisibility)
+                }
+                return
             }
+
+            this.restoreMusicPageHistoryGuard()
         },
         async togglePlayerPip() {
             if (this.isPlayerPip) {
