@@ -2,8 +2,8 @@
     <div
         class="mp3-page"
         :class="{ 'has-mobile-now-playing': showMobileNowPlayingBar }"
-        :inert="needVerify"
-        :aria-hidden="needVerify ? 'true' : null"
+        :inert="needVerify || disclaimerOpen"
+        :aria-hidden="needVerify || disclaimerOpen ? 'true' : null"
     >
         <div class="toolbar">
             <div>
@@ -11,9 +11,14 @@
                     <router-link class="toolbox-home-link" to="/">懒猴工具箱</router-link>
                     <span aria-hidden="true"> - </span><span>听歌</span>
                 </h2>
-                <p>
-                    来源：好听音乐网
-                    <a class="source-inline-link" href="https://www.thttt.com/" target="_blank" rel="noopener">thttt.com</a>
+                <p class="source-row">
+                    <span>
+                        来源：
+                        <a class="source-inline-link" href="https://www.thttt.com/" target="_blank" rel="noopener">thttt.com</a>
+                    </span>
+                    <button type="button" class="disclaimer-link" @click="disclaimerOpen = true">
+                        《免责声明》
+                    </button>
                 </p>
             </div>
         </div>
@@ -51,6 +56,36 @@
         <div v-if="message && !needVerify" class="message" :class="{ error: messageType === 'error' }">
             {{ message }}
         </div>
+
+        <Teleport to="body">
+            <div v-if="disclaimerOpen" class="disclaimer-modal-layer" @click.self="closeDisclaimer">
+                <section
+                    ref="disclaimerDialog"
+                    class="disclaimer-dialog"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="disclaimer-dialog-title"
+                    tabindex="-1"
+                    @keydown="handleDisclaimerKeydown"
+                >
+                    <div class="disclaimer-dialog-header">
+                        <h2 id="disclaimer-dialog-title">免责声明</h2>
+                        <button type="button" class="disclaimer-close-icon" aria-label="关闭免责声明" @click="closeDisclaimer">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                    <ol class="disclaimer-content">
+                        <li>本网站所刊载的内容、资料来源于互联网公开渠道，相关版权归原作者所有。</li>
+                        <li>本站转载内容仅为信息传播、学习交流之用，不代表本站认同其观点，亦不构成任何投资、法律、医疗等专业建议。</li>
+                        <li>如原著作权人认为本站内容侵犯自身合法权益，请及时联系我方，我方核实后将第一时间删除相关内容。</li>
+                        <li>访问者依据本站内容自行作出的任何行为，风险由访问者自行承担，本网站不承担由此产生的一切法律责任。</li>
+                    </ol>
+                    <div class="disclaimer-actions">
+                        <button type="button" @click="closeDisclaimer">我知道了</button>
+                    </div>
+                </section>
+            </div>
+        </Teleport>
 
         <Teleport to="body">
             <div v-if="needVerify" class="verify-modal-layer">
@@ -341,6 +376,7 @@ const PLAY_MODE_LABELS = {
 }
 const visualizerRuntime = new WeakMap()
 const verifyModalState = new WeakMap()
+const disclaimerModalState = new WeakMap()
 const CACHE_KEYS = {
     keyword: 'lazy-monkey-mp3-keyword',
     playMode: 'lazy-monkey-mp3-play-mode'
@@ -359,6 +395,7 @@ export default {
             loading: false,
             message: '',
             messageType: 'info',
+            disclaimerOpen: false,
             needVerify: false,
             verifyToken: '',
             verifying: false,
@@ -428,7 +465,9 @@ export default {
         this.stopLyricsResize()
         this.resetPageTitle()
         document.body.classList.remove('verify-modal-open')
+        document.body.classList.remove('disclaimer-modal-open')
         verifyModalState.delete(this)
+        disclaimerModalState.delete(this)
     },
     watch: {
         keyword(value) {
@@ -453,6 +492,22 @@ export default {
             document.body.classList.remove('verify-modal-open')
             const modalState = verifyModalState.get(this)
             verifyModalState.delete(this)
+            this.$nextTick(() => {
+                if (modalState?.returnFocus?.isConnected) modalState.returnFocus.focus()
+            })
+        },
+        disclaimerOpen(isOpen) {
+            if (isOpen) {
+                const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+                disclaimerModalState.set(this, { returnFocus })
+                document.body.classList.add('disclaimer-modal-open')
+                this.$nextTick(() => this.$refs.disclaimerDialog?.focus())
+                return
+            }
+
+            document.body.classList.remove('disclaimer-modal-open')
+            const modalState = disclaimerModalState.get(this)
+            disclaimerModalState.delete(this)
             this.$nextTick(() => {
                 if (modalState?.returnFocus?.isConnected) modalState.returnFocus.focus()
             })
@@ -526,6 +581,35 @@ export default {
         }
     },
     methods: {
+        closeDisclaimer() {
+            this.disclaimerOpen = false
+        },
+        handleDisclaimerKeydown(event) {
+            if (event.key === 'Escape') {
+                this.closeDisclaimer()
+                return
+            }
+            if (event.key !== 'Tab') return
+
+            const dialog = this.$refs.disclaimerDialog
+            if (!dialog) return
+            const focusableElements = Array.from(dialog.querySelectorAll('button:not(:disabled), [href], [tabindex]:not([tabindex="-1"])'))
+            if (!focusableElements.length) {
+                event.preventDefault()
+                dialog.focus()
+                return
+            }
+
+            const firstElement = focusableElements[0]
+            const lastElement = focusableElements[focusableElements.length - 1]
+            if (event.shiftKey && (document.activeElement === firstElement || !dialog.contains(document.activeElement))) {
+                event.preventDefault()
+                lastElement.focus()
+            } else if (!event.shiftKey && document.activeElement === lastElement) {
+                event.preventDefault()
+                firstElement.focus()
+            }
+        },
         exposeAppPlayerApi() {
             // 提供给 uni-app WebView 的稳定公开接口，不依赖页面按钮或 DOM 结构。
             window.LazyMonkeyPlayer = {
@@ -1749,6 +1833,10 @@ export default {
     padding: 22px;
 }
 
+.toolbar > div {
+    width: 100%;
+}
+
 .toolbar h2,
 .toolbar p,
 .player h2,
@@ -1781,6 +1869,41 @@ export default {
     color: #77808a;
 }
 
+.source-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.disclaimer-link {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 0;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    background: transparent;
+    color: #0065a0;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 400;
+    line-height: 1.2;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.disclaimer-link:hover {
+    border-bottom-color: currentColor;
+    color: #004f7e;
+}
+
+.disclaimer-link:focus-visible {
+    border-radius: 3px;
+    outline: 2px solid #0065a0;
+    outline-offset: 3px;
+}
+
 .plain-btn,
 .search-box button,
 .song-item > button {
@@ -1798,6 +1921,112 @@ export default {
 
 .source-inline-link:hover {
     text-decoration: underline;
+}
+
+:global(body.disclaimer-modal-open) {
+    overflow: hidden;
+}
+
+.disclaimer-modal-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 1300;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    padding: 24px;
+    background: rgba(20, 27, 38, 0.52);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
+
+.disclaimer-dialog {
+    width: min(600px, 100%);
+    max-height: min(680px, calc(100vh - 48px));
+    overflow: auto;
+    box-sizing: border-box;
+    padding: 24px;
+    border: 1px solid #dfe5eb;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 22px 54px rgba(14, 22, 34, 0.3);
+    color: #2c3e50;
+}
+
+.disclaimer-dialog:focus {
+    outline: none;
+}
+
+.disclaimer-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #e7eaee;
+}
+
+.disclaimer-dialog-header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.disclaimer-close-icon {
+    display: grid;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    place-items: center;
+    border: 0;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #5f6973;
+    cursor: pointer;
+    font-size: 24px;
+    line-height: 1;
+}
+
+.disclaimer-close-icon:hover {
+    background: #e0e6ed;
+    color: #2c3e50;
+}
+
+.disclaimer-content {
+    margin: 20px 0 0;
+    padding-left: 24px;
+    color: #4e5965;
+    font-size: 15px;
+    line-height: 1.75;
+}
+
+.disclaimer-content li + li {
+    margin-top: 12px;
+}
+
+.disclaimer-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 22px;
+}
+
+.disclaimer-actions button {
+    padding: 9px 18px;
+    border: 0;
+    border-radius: 6px;
+    background: #0065a0;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.disclaimer-actions button:hover {
+    background: #005486;
+}
+
+.disclaimer-dialog button:focus-visible {
+    outline: 3px solid rgba(0, 101, 160, 0.34);
+    outline-offset: 3px;
 }
 
 .search-box {
