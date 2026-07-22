@@ -1193,8 +1193,8 @@ export default {
                     this.results = songs
                 }
                 this.currentPage = page
-                this.nextPageUrl = this.hasSearched ? pagination.nextPageUrl : ''
-                this.hasMoreResults = this.hasSearched ? Boolean(this.nextPageUrl) : songs.length > 0
+                this.nextPageUrl = pagination.nextPageUrl
+                this.hasMoreResults = this.hasSearched && Boolean(this.nextPageUrl)
                 this.needVerify = false
                 this.verifyToken = ''
                 if (!append && !songs.length) {
@@ -1222,11 +1222,9 @@ export default {
             }
         },
         async loadMoreSongs() {
-            if (this.loading || this.loadingMore || !this.hasMoreResults) return
+            if (!this.hasSearched || this.loading || this.loadingMore || !this.hasMoreResults) return
 
-            const nextUrl = this.hasSearched
-                ? this.nextPageUrl || this.getSearchPageUrl(this.currentPage + 1)
-                : this.getRandomRecommendationUrl()
+            const nextUrl = this.nextPageUrl || this.getSearchPageUrl(this.currentPage + 1)
             if (!nextUrl) {
                 this.hasMoreResults = false
                 return
@@ -1239,7 +1237,7 @@ export default {
         },
         handlePageScroll() {
             this.updateCurrentSongVisibility()
-            if (!this.results.length || !this.hasMoreResults || this.loading || this.loadingMore) return
+            if (!this.hasSearched || !this.results.length || !this.hasMoreResults || this.loading || this.loadingMore) return
 
             const target = this.scrollContainer === window ? document.documentElement : this.scrollContainer
             const scrollTop = this.scrollContainer === window ? window.scrollY : target.scrollTop
@@ -1486,9 +1484,6 @@ export default {
             if (!this.hasSearched || !this.keyword || page <= 1) return ''
             const encodedKeyword = encodeURIComponent(this.keyword)
             return `${SOURCE_PROXY}/so/${encodedKeyword}-${page}.html`
-        },
-        getRandomRecommendationUrl() {
-            return `${SOURCE_PROXY}/?random=${Date.now()}`
         },
         normalizeProxyUrl(url, currentUrl = '') {
             if (!url) return ''
