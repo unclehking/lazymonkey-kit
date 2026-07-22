@@ -1830,7 +1830,7 @@ export default {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 22px;
+    padding: 12px;
 }
 
 .toolbar > div {
@@ -1888,6 +1888,7 @@ export default {
     color: #0065a0;
     cursor: pointer;
     font: inherit;
+    font-size: 14px;
     font-weight: 400;
     line-height: 1.2;
     transition: color 0.2s, border-color 0.2s;
