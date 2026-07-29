@@ -100,9 +100,6 @@
                         来源站需要安全验证，请点击下方按钮在当前代理链路中完成验证。
                     </div>
                     <div class="verify-actions">
-                        <button type="button" class="verify-cancel-btn" :disabled="verifying" @click="cancelVerify">
-                            取消
-                        </button>
                         <button
                             type="button"
                             class="verify-btn"
@@ -2123,8 +2120,7 @@ button:disabled {
     margin-top: 10px;
 }
 
-.verify-btn,
-.verify-cancel-btn {
+.verify-btn {
     border: none;
     border-radius: 6px;
     cursor: pointer;
@@ -2136,17 +2132,8 @@ button:disabled {
     color: #fff;
 }
 
-.verify-cancel-btn {
-    background: #eef2f6;
-    color: #2c3e50;
-}
-
 .verify-btn:hover {
     opacity: 0.9;
-}
-
-.verify-cancel-btn:hover {
-    background: #e0e6ed;
 }
 
 .player-host {
