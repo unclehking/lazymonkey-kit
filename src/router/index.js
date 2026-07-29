@@ -68,7 +68,7 @@ const routes = [
     component: () => import('../views/DoodleBoard.vue')
   },
   {
-    path: '/mp3-search',
+    path: '/music',
     name: 'Mp3Search',
     component: () => import('../views/Mp3Search.vue')
   },

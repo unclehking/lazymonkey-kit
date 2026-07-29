@@ -374,8 +374,7 @@ const verifyModalState = new WeakMap()
 const disclaimerModalState = new WeakMap()
 const CACHE_KEYS = {
     keyword: 'lazy-monkey-mp3-keyword',
-    playMode: 'lazy-monkey-mp3-play-mode',
-    playback: 'lazy-monkey-mp3-playback'
+    playMode: 'lazy-monkey-mp3-play-mode'
 }
 
 export default {
@@ -421,10 +420,6 @@ export default {
             titleScrollTimer: null,
             titleScrollIndex: 0,
             currentTitleLyric: '',
-            pendingRestoreTime: null,
-            resumePlaybackRequested: false,
-            lastPlaybackPersistedAt: 0,
-            playbackRequestVersion: 0,
             defaultCover: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><rect width="120" height="120" fill="%232c3e50"/><path d="M75 26v48.5A14.5 14.5 0 1 1 68 62V39l-28 6v37.5A14.5 14.5 0 1 1 33 70V38l42-9z" fill="%23fff"/></svg>'
         }
     },
@@ -441,11 +436,9 @@ export default {
         this.exposeAppPlayerApi()
         window.addEventListener('resize', this.updateMobileLyricVisibleCount, { passive: true })
         window.addEventListener('popstate', this.handleMusicPagePopState)
-        window.addEventListener('pagehide', this.handlePageHide)
-        this.setupMusicPageHistoryGuard()
+        //this.setupMusicPageHistoryGuard()
         this.setupMediaSession()
         this.updateMobileLyricVisibleCount()
-        this.restorePlaybackState()
         if (this.keyword) {
             this.searchMusic()
         } else {
@@ -453,8 +446,6 @@ export default {
         }
     },
     beforeUnmount() {
-        this.playbackRequestVersion += 1
-        this.persistPlaybackState()
         this.scrollContainer?.removeEventListener('scroll', this.handlePageScroll)
         window.removeEventListener('keydown', this.handlePlayerKeydown)
         window.removeEventListener('car-media-command', this.handleCarMediaCommand)
@@ -462,7 +453,6 @@ export default {
         this.removeAppPlayerApi()
         window.removeEventListener('resize', this.updateMobileLyricVisibleCount)
         window.removeEventListener('popstate', this.handleMusicPagePopState)
-        window.removeEventListener('pagehide', this.handlePageHide)
         this.clearMediaSession()
         this.closePlayerPip()
         this.destroyMusicVisualizer()
@@ -654,6 +644,7 @@ export default {
             }
         },
         restoreCachedSettings() {
+            window.localStorage.removeItem('lazy-monkey-mp3-playback')
             this.keyword = window.localStorage.getItem(CACHE_KEYS.keyword) || ''
             const cachedMode = window.localStorage.getItem(CACHE_KEYS.playMode)
             if (PLAY_MODES.includes(cachedMode)) {
@@ -661,95 +652,6 @@ export default {
                 return
             }
             this.playMode = 'sequence'
-        },
-        async restorePlaybackState() {
-            let cachedPlayback
-            try {
-                cachedPlayback = JSON.parse(window.localStorage.getItem(CACHE_KEYS.playback) || 'null')
-            } catch (error) {
-                window.localStorage.removeItem(CACHE_KEYS.playback)
-                return
-            }
-
-            const cachedSong = cachedPlayback?.song
-            if (!cachedSong?.sourceId || !cachedSong?.audioUrl) return
-
-            const requestVersion = this.playbackRequestVersion
-            const refreshedSong = await this.refreshCachedSong(cachedSong)
-            if (requestVersion !== this.playbackRequestVersion) return
-            this.currentSong = refreshedSong
-            this.audioCurrentTime = Math.max(0, Number(cachedPlayback.currentTime) || 0)
-            this.pendingRestoreTime = this.audioCurrentTime
-            this.resumePlaybackRequested = Boolean(cachedPlayback.wasPlaying)
-            this.updateMediaSessionMetadata()
-            this.setPageTitle(refreshedSong.title)
-            this.loadLyrics(refreshedSong.lrcUrl)
-            this.$nextTick(() => {
-                this.updateCurrentSongVisibility()
-                this.openMobilePlayer()
-            })
-        },
-        async refreshCachedSong(cachedSong) {
-            const controller = new AbortController()
-            const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
-            try {
-                const body = new URLSearchParams({
-                    id: cachedSong.sourceId,
-                    type: 'music'
-                })
-                const response = await fetch(`${SOURCE_PROXY}/js/play.php`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-                    },
-                    body,
-                    signal: controller.signal
-                })
-                const data = await response.json()
-                if (!response.ok || !data.url) return cachedSong
-
-                return {
-                    ...cachedSong,
-                    title: data.title || cachedSong.title,
-                    pic: data.pic || cachedSong.pic,
-                    audioUrl: this.proxyAudioUrl(data.url),
-                    lrcUrl: data.lrc || cachedSong.lrcUrl || ''
-                }
-            } catch (error) {
-                return cachedSong
-            } finally {
-                window.clearTimeout(timer)
-            }
-        },
-        persistPlaybackState(wasPlaying = null) {
-            if (!this.currentSong) return
-
-            const audio = this.$refs.audioPlayer
-            const currentTime = Number.isFinite(audio?.currentTime)
-                ? audio.currentTime
-                : this.audioCurrentTime
-            const isPlaying = wasPlaying === null
-                ? Boolean(this.isAudioPlaying || this.resumePlaybackRequested)
-                : Boolean(wasPlaying)
-            const song = {
-                sourceId: this.currentSong.sourceId,
-                title: this.currentSong.title,
-                pic: this.currentSong.pic || '',
-                audioUrl: this.currentSong.audioUrl,
-                lrcUrl: this.currentSong.lrcUrl || ''
-            }
-
-            window.localStorage.setItem(CACHE_KEYS.playback, JSON.stringify({
-                song,
-                currentTime: Math.max(0, Number(currentTime) || 0),
-                wasPlaying: isPlaying,
-                savedAt: Date.now()
-            }))
-            this.lastPlaybackPersistedAt = Date.now()
-        },
-        handlePageHide() {
-            const audio = this.$refs.audioPlayer
-            this.persistPlaybackState(Boolean(audio && !audio.paused && !audio.ended))
         },
         async loadHomeSongs() {
             this.hasSearched = false
@@ -854,7 +756,7 @@ export default {
             if (!this.isMobileViewport() || !this.currentSong || !this.mobilePlayerOpen || this.mobilePlayerHistoryActive) return
 
             // 页面刷新后浏览器会保留 history.state，但组件状态会重新初始化。
-            // 恢复播放记录时接管已有播放器 state，避免重复 push，同时保证返回键先关闭播放器。
+            // 接管已有播放器 state，避免重复 push，同时保证返回键先关闭播放器。
             if (window.history.state?.lazyMonkeyMobilePlayer) {
                 this.mobilePlayerHistoryActive = true
                 return
@@ -883,7 +785,7 @@ export default {
                 return
             }
 
-            this.restoreMusicPageHistoryGuard()
+            //this.restoreMusicPageHistoryGuard()
         },
         async togglePlayerPip() {
             if (this.isPlayerPip) {
@@ -969,18 +871,14 @@ export default {
         },
         handleAudioPlay() {
             this.isAudioPlaying = true
-            this.resumePlaybackRequested = false
             this.startMusicVisualizer()
             this.updateMediaSessionPlaybackState('playing')
             this.syncLyricTitle()
-            this.persistPlaybackState(true)
         },
         handleAudioPause() {
             this.isAudioPlaying = false
-            this.resumePlaybackRequested = false
             this.stopMusicVisualizer()
             this.updateMediaSessionPlaybackState('paused')
-            this.persistPlaybackState(false)
         },
         async startMusicVisualizer() {
             if (!this.isMobileViewport() || !this.$refs.audioPlayer) return
@@ -1255,33 +1153,11 @@ export default {
             this.audioDuration = Number.isFinite(audio.duration) ? audio.duration : 0
         },
         handleAudioLoadedMetadata() {
-            const audio = this.$refs.audioPlayer
-            if (!audio) return
-
             this.updateAudioProgress()
-            if (this.pendingRestoreTime !== null) {
-                const maxTime = Number.isFinite(audio.duration)
-                    ? Math.max(0, audio.duration - 0.1)
-                    : this.pendingRestoreTime
-                audio.currentTime = Math.min(this.pendingRestoreTime, maxTime)
-                this.audioCurrentTime = audio.currentTime
-                this.pendingRestoreTime = null
-                this.updateLyricIndex()
-            }
-
-            if (!this.resumePlaybackRequested) return
-            audio.play().catch(() => {
-                this.resumePlaybackRequested = false
-                this.persistPlaybackState(false)
-                this.showToast('已恢复上次播放进度；浏览器阻止了自动播放，请点击播放继续。')
-            })
         },
         handleAudioTimeUpdate() {
             this.updateAudioProgress()
             this.updateLyricIndex()
-            if (Date.now() - this.lastPlaybackPersistedAt >= 1000) {
-                this.persistPlaybackState()
-            }
         },
         seekAudio(event) {
             const audio = this.$refs.audioPlayer
@@ -1293,7 +1169,6 @@ export default {
             audio.currentTime = nextTime
             this.audioCurrentTime = nextTime
             this.updateLyricIndex()
-            this.persistPlaybackState()
         },
         formatAudioTime(value) {
             const totalSeconds = Math.max(0, Math.floor(Number(value) || 0))
@@ -1440,13 +1315,11 @@ export default {
         },
         async handleSongEnded() {
             this.isAudioPlaying = false
-            this.resumePlaybackRequested = false
             this.activeLyricIndex = -1
             if (this.playMode === 'loop') {
                 this.syncLyricTitle()
                 return
             }
-            this.persistPlaybackState(false)
             if (this.playMode === 'random') {
                 await this.playRandomSong()
                 return
@@ -1697,7 +1570,6 @@ export default {
                 return
             }
 
-            this.playbackRequestVersion += 1
             song.loading = true
             const controller = new AbortController()
             const timer = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
@@ -1730,8 +1602,6 @@ export default {
                     audioUrl: this.proxyAudioUrl(data.url),
                     lrcUrl: data.lrc || ''
                 }
-                this.resumePlaybackRequested = true
-                this.persistPlaybackState(true)
                 this.updateMediaSessionMetadata()
                 this.openMobilePlayer()
                 this.setPageTitle(this.currentSong.title)
@@ -1739,8 +1609,6 @@ export default {
                 this.$nextTick(() => {
                     this.updateCurrentSongVisibility()
                     this.$refs.audioPlayer?.play?.().catch(() => {
-                        this.resumePlaybackRequested = false
-                        this.persistPlaybackState(false)
                         this.showToast('浏览器拦截了自动播放，请手动点击播放器播放。')
                     })
                 })

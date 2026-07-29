@@ -1,5 +1,5 @@
 <template>
-    <div class="app-container" :class="{ 'mp3-route': $route.path === '/mp3-search' }">
+    <div class="app-container" :class="{ 'mp3-route': $route.path === '/music' }">
         <!-- 顶部状态栏 -->
         <header class="header">
             <router-link to="/" class="logo">
@@ -89,7 +89,7 @@
                     涂鸦画板
                 </router-link>
                 <view class="divider"></view>
-                <router-link to="/mp3-search" class="menu-item">
+                <router-link to="/music" class="menu-item">
                     <i class="fas fa-music"></i>
                     懒猴听歌
                 </router-link>
