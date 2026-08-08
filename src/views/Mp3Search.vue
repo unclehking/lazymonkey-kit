@@ -179,15 +179,28 @@
                     >
                         {{ playModeLabel }}
                     </button>
-                    <button
-                        v-if="!isPlayerPip"
-                        type="button"
-                        class="pip-btn"
-                        title="打开画中画"
-                        @click="togglePlayerPip"
-                    >
-                        画中画
-                    </button>
+                    <div class="player-actions">
+                        <button
+                            v-if="!isPlayerPip"
+                            type="button"
+                            class="pip-btn"
+                            title="打开画中画"
+                            @click="togglePlayerPip"
+                        >
+                            画中画
+                        </button>
+                        <button
+                            type="button"
+                            class="download-btn"
+                            title="下载当前歌曲"
+                            @click="downloadCurrentSong"
+                        >
+                            <svg class="download-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14" />
+                            </svg>
+                            <span>下载</span>
+                        </button>
+                    </div>
                 </div>
                 <audio
                     ref="audioPlayer"
@@ -791,6 +804,44 @@ export default {
             }
 
             await this.openPlayerPip()
+        },
+        downloadCurrentSong() {
+            const audioUrl = this.currentSong?.audioUrl
+            if (!audioUrl) {
+                this.showToast('当前歌曲暂无可用下载地址', 'error')
+                return
+            }
+
+            const link = document.createElement('a')
+            link.href = audioUrl
+            link.download = this.getCurrentSongDownloadName(audioUrl)
+            link.style.display = 'none'
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+            this.showToast('歌曲已开始下载')
+        },
+        getCurrentSongDownloadName(audioUrl) {
+            const safeTitle = String(this.currentSong?.title || '懒猴音乐')
+                .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_')
+                .replace(/[.\s]+$/g, '')
+                .slice(0, 120) || '懒猴音乐'
+            const supportedExtensions = new Set(['mp3', 'm4a', 'aac', 'ogg', 'wav', 'flac'])
+            let extension = 'mp3'
+
+            try {
+                const downloadUrl = new URL(audioUrl, window.location.href)
+                const sourceUrl = downloadUrl.pathname === '/audio-proxy'
+                    ? new URL(downloadUrl.searchParams.get('url') || '')
+                    : downloadUrl
+                const match = sourceUrl.pathname.match(/\.([a-zA-Z0-9]{2,5})$/)
+                const candidate = match?.[1]?.toLowerCase()
+                if (supportedExtensions.has(candidate)) extension = candidate
+            } catch (error) {
+                // 无法识别源地址扩展名时使用 MP3 作为默认格式。
+            }
+
+            return `${safeTitle}.${extension}`
         },
         async openPlayerPip() {
             if (!this.currentSong || !this.$refs.player) return
@@ -2300,7 +2351,15 @@ button:disabled {
     background: #d9edf6;
 }
 
-.pip-btn {
+.player-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.pip-btn,
+.download-btn {
     flex: 0 0 auto;
     border: none;
     border-radius: 999px;
@@ -2314,7 +2373,24 @@ button:disabled {
     transition: opacity 0.2s;
 }
 
-.pip-btn:hover {
+.download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.download-icon {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.pip-btn:hover,
+.download-btn:hover {
     opacity: 0.9;
 }
 
