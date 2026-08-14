@@ -1,5 +1,5 @@
 <template>
-    <div class="app-container" :class="{ 'mp3-route': $route.path === '/music' }">
+    <div class="app-container">
         <!-- 顶部状态栏 -->
         <header class="header">
             <router-link to="/" class="logo">
@@ -89,10 +89,10 @@
                     涂鸦画板
                 </router-link>
                 <view class="divider"></view>
-                <router-link to="/music" class="menu-item">
+                <a href="https://mp3.h5cssjs.com" class="menu-item">
                     <i class="fas fa-music"></i>
                     懒猴听歌
-                </router-link>
+                </a>
             </nav>
 
             <!-- 右侧内容区 -->
@@ -239,10 +239,6 @@ export default {
         padding: 0 12px;
     }
 
-    .app-container.mp3-route .header {
-        display: none;
-    }
-
     .header span {
         display: none;
     }
@@ -267,11 +263,6 @@ export default {
         box-shadow: 0 12px 28px rgba(31, 45, 61, 0.24);
         overflow-y: auto;
         z-index: 30;
-    }
-
-    .app-container.mp3-route .sidebar {
-        top: 12px;
-        max-height: calc(100vh - 24px);
     }
 
     .sidebar.open {

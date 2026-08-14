@@ -8,7 +8,7 @@
         <div class="toolbar">
             <div>
                 <h2>
-                    <router-link class="toolbox-home-link" to="/">懒猴工具箱</router-link>
+                    <a class="toolbox-home-link" href="https://kit.h5cssjs.com/">懒猴工具箱</a>
                     <span aria-hidden="true"> - </span><span>听歌</span>
                 </h2>
                 <p class="source-row">
