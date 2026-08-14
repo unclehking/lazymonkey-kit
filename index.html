@@ -31,6 +31,44 @@
   </head>
   <body>
     <div id="app"></div>
+    <script type="text/javascript">
+      // 1. 申明全局命名空间 TencentGDT 对象
+      window.TencentGDT = window.TencentGDT || [];
+
+      // 2. 广告初始化：填写参数值。具体字段含义详见《H5SDK 开发者文档》
+      // https://ylh.qq.com/help_detail.html?cid=4356&pid=10801
+      var placementId = '2356205198988124';
+      window.TencentGDT.push({
+        app_id: '1219152213', // {String} - APPID - 必填
+        placement_id: placementId, // {String} - 广告位ID - 必填
+        type: 'native', // {String} - 原生广告类型 - 必填
+        muid_type: '', // {String} - 移动终端标识类型，1：imei，2：idfa，3：mac号 - 选填
+        muid: '', // {String} - 加密终端标识，详细加密算法见API说明 - 选填
+        count: 1, // {Number} - 拉取广告的数量，默认是3，最高支持10 - 选填，超过10条会被限流
+        onComplete: function(res) {
+          if (res && res.constructor === Array) {
+            // 原生模板广告位调用 renderAd 进行模板广告渲染
+            window.TencentGDT.NATIVE.renderAd(res[0], 'containerId');
+          } else {
+            // 如广告回调无广告，可使用 loadAd 再次拉取广告
+            // 注意：拉取广告频率每分钟不要超过20次
+            setTimeout(function() {
+              window.TencentGDT.NATIVE.loadAd(placementId);
+            }, 3000);
+          }
+        }
+      });
+
+      // 3. H5 SDK 接入全局只需运行一次，且必须放在第2步之后
+      (function() {
+        var doc = document,
+          h = doc.getElementsByTagName('head')[0],
+          s = doc.createElement('script');
+        s.async = true;
+        s.src = '//qzs.gdtimg.com/union/res/union_sdk/page/h5_sdk/i.js';
+        h && h.insertBefore(s, h.firstChild);
+      })();
+    </script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html> 
