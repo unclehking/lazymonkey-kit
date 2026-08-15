@@ -2201,7 +2201,7 @@ button:disabled {
 .player {
     position: fixed;
     bottom: -1px;
-    left: calc(50vw + 67px);
+    left: 50%;
     transform: translateX(-50%);
     z-index: 999;
     width: 980px;
