@@ -190,6 +190,7 @@
                             画中画
                         </button>
                         <button
+                            v-if="!isPlayerPip"
                             type="button"
                             class="download-btn"
                             title="下载当前歌曲"
