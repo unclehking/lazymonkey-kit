@@ -51,6 +51,15 @@
                     <i class="fas fa-compress"></i>
                     图片压缩
                 </router-link>
+                <a
+                    href="https://ocr.h5cssjs.com"
+                    class="menu-item"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    <i class="fas fa-font"></i>
+                    图片文字识别
+                </a>
                 <view class="divider"></view>
                 <router-link to="/generate-qrcode" class="menu-item">
                     <i class="icon qrcode-icon"></i>
