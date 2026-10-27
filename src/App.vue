@@ -35,6 +35,15 @@
         <div class="main-content">
             <!-- 左侧菜单 -->
             <nav class="sidebar" :class="{ open: mobileMenuOpen }" @click="closeMobileMenu">
+                <a
+                    href="https://ocr.h5cssjs.com"
+                    class="menu-item"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    <i class="fas fa-font"></i>
+                    图片文字识别
+                </a>
                 <router-link to="/image-convert" class="menu-item">
                     <i class="icon image-icon"></i>
                     图片格式转换
@@ -51,15 +60,6 @@
                     <i class="fas fa-compress"></i>
                     图片压缩
                 </router-link>
-                <a
-                    href="https://ocr.h5cssjs.com"
-                    class="menu-item"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    <i class="fas fa-font"></i>
-                    图片文字识别
-                </a>
                 <view class="divider"></view>
                 <router-link to="/generate-qrcode" class="menu-item">
                     <i class="icon qrcode-icon"></i>
